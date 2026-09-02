@@ -1,0 +1,930 @@
+/* =========================================================
+   SWAAD & SPICE
+   PREMIUM RESTAURANT NAVBAR
+   ========================================================= */
+
+
+/* =========================
+   NAVBAR
+========================= */
+
+.navbar {
+    position: fixed;
+
+    top: 18px;
+    left: 50%;
+
+    transform: translateX(-50%);
+
+    width: min(1240px, 92%);
+
+    min-height: 68px;
+
+    padding: 10px 18px 10px 24px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 25px;
+
+    background: rgba(31, 20, 14, 0.78);
+
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+
+    border: 1px solid rgba(216, 180, 119, 0.22);
+
+    border-radius: 4px;
+
+    box-shadow:
+        0 12px 40px rgba(0, 0, 0, 0.28);
+
+    z-index: 1000;
+
+    transition:
+        top 0.3s ease,
+        background 0.3s ease,
+        box-shadow 0.3s ease,
+        border-color 0.3s ease,
+        width 0.3s ease;
+}
+
+
+/* =========================
+   SCROLLED NAVBAR
+========================= */
+
+.navbar.navbar-scrolled {
+    top: 10px;
+
+    background: rgba(25, 15, 10, 0.95);
+
+    border-color: rgba(216, 180, 119, 0.35);
+
+    box-shadow:
+        0 15px 45px rgba(0, 0, 0, 0.38);
+}
+
+
+/* =========================
+   LOGO
+========================= */
+
+.logo {
+    display: flex;
+
+    align-items: center;
+
+    gap: 11px;
+
+    min-width: max-content;
+
+    color: #ffffff;
+
+    cursor: pointer;
+
+    user-select: none;
+
+    outline: none;
+}
+
+
+.logo-icon {
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    width: 35px;
+    height: 35px;
+
+    border: 1px solid #c59b5c;
+
+    border-radius: 50%;
+
+    color: #d8b477;
+
+    font-size: 17px;
+
+    transition:
+        transform 0.4s ease,
+        background 0.3s ease;
+}
+
+
+.logo:hover .logo-icon {
+    transform: rotate(90deg);
+
+    background: rgba(216, 180, 119, 0.08);
+}
+
+
+.logo-text {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 2px;
+}
+
+
+.logo-text strong {
+    color: #ffffff;
+
+    font-family:
+        Georgia,
+        "Times New Roman",
+        serif;
+
+    font-size: 19px;
+
+    font-weight: 500;
+
+    letter-spacing: 0.3px;
+}
+
+
+.logo-text small {
+    color: #c59b5c;
+
+    font-size: 7px;
+
+    font-weight: 700;
+
+    letter-spacing: 2px;
+}
+
+
+/* =========================
+   DESKTOP NAVIGATION
+========================= */
+
+.nav-links {
+    display: flex;
+
+    align-items: center;
+
+    gap: 27px;
+
+    margin: 0;
+    padding: 0;
+
+    list-style: none;
+}
+
+
+.nav-links li {
+    position: relative;
+}
+
+
+.nav-links a {
+    position: relative;
+
+    display: inline-block;
+
+    padding: 10px 0;
+
+    color: rgba(255, 255, 255, 0.78);
+
+    text-decoration: none;
+
+    font-size: 13px;
+
+    font-weight: 600;
+
+    letter-spacing: 0.6px;
+
+    transition:
+        color 0.3s ease;
+}
+
+
+.nav-links a::after {
+    content: "";
+
+    position: absolute;
+
+    left: 50%;
+    bottom: 3px;
+
+    width: 0;
+    height: 1px;
+
+    background: #d8b477;
+
+    transform: translateX(-50%);
+
+    transition:
+        width 0.3s ease;
+}
+
+
+.nav-links a:hover {
+    color: #d8b477;
+}
+
+
+.nav-links a:hover::after {
+    width: 100%;
+}
+
+
+/* Active route */
+
+.nav-links a.active {
+    color: #d8b477;
+}
+
+
+.nav-links a.active::after {
+    width: 100%;
+}
+
+
+/* =========================
+   RIGHT SIDE
+========================= */
+
+.navbar-actions {
+    display: flex;
+
+    align-items: center;
+
+    gap: 7px;
+}
+
+
+/* =========================
+   USER SECTION
+========================= */
+
+.user-section {
+    display: flex;
+
+    align-items: center;
+
+    gap: 6px;
+}
+
+
+.user-name {
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    margin-right: 4px;
+
+    color: rgba(255, 255, 255, 0.85);
+
+    font-size: 12px;
+
+    font-weight: 600;
+
+    white-space: nowrap;
+}
+
+
+.user-avatar {
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    width: 31px;
+    height: 31px;
+
+    border: 1px solid rgba(216, 180, 119, 0.6);
+
+    border-radius: 50%;
+
+    background: rgba(216, 180, 119, 0.12);
+
+    color: #d8b477;
+
+    font-family: Georgia, serif;
+
+    font-size: 13px;
+}
+
+
+/* =========================
+   BUTTON BASE
+========================= */
+
+.login-btn,
+.my-orders-btn,
+.admin-btn,
+.logout-btn {
+    padding: 9px 13px;
+
+    border-radius: 2px;
+
+    font-size: 11px;
+
+    font-weight: 700;
+
+    letter-spacing: 0.5px;
+
+    cursor: pointer;
+
+    transition:
+        transform 0.3s ease,
+        background 0.3s ease,
+        border-color 0.3s ease,
+        color 0.3s ease,
+        box-shadow 0.3s ease;
+}
+
+
+/* =========================
+   LOGIN
+========================= */
+
+.login-btn {
+    border: 1px solid rgba(216, 180, 119, 0.55);
+
+    background: transparent;
+
+    color: #d8b477;
+}
+
+
+.login-btn:hover {
+    background: #d8b477;
+
+    border-color: #d8b477;
+
+    color: #24170f;
+
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 7px 18px rgba(197, 155, 92, 0.18);
+}
+
+
+/* =========================
+   MY ORDERS
+========================= */
+
+.my-orders-btn {
+    border: 1px solid rgba(255, 255, 255, 0.18);
+
+    background: rgba(255, 255, 255, 0.06);
+
+    color: rgba(255, 255, 255, 0.8);
+}
+
+
+.my-orders-btn:hover {
+    border-color: rgba(216, 180, 119, 0.5);
+
+    background: rgba(216, 180, 119, 0.1);
+
+    color: #d8b477;
+
+    transform: translateY(-2px);
+}
+
+
+/* =========================
+   ADMIN
+========================= */
+
+.admin-btn {
+    border: 1px solid rgba(216, 180, 119, 0.35);
+
+    background: rgba(216, 180, 119, 0.1);
+
+    color: #d8b477;
+}
+
+
+.admin-btn:hover {
+    background: #d8b477;
+
+    color: #24170f;
+
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 7px 18px rgba(216, 180, 119, 0.18);
+}
+
+
+/* =========================
+   LOGOUT
+========================= */
+
+.logout-btn {
+    border: 1px solid rgba(220, 80, 60, 0.35);
+
+    background: rgba(220, 80, 60, 0.08);
+
+    color: #e8a49a;
+}
+
+
+.logout-btn:hover {
+    border-color: #c95d4d;
+
+    background: #c95d4d;
+
+    color: #ffffff;
+
+    transform: translateY(-2px);
+}
+
+
+/* =========================
+   CART
+========================= */
+
+.order-btn {
+    position: relative;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 7px;
+
+    min-height: 38px;
+
+    padding: 0 16px;
+
+    border: 1px solid #c59b5c;
+
+    border-radius: 2px;
+
+    background: #c59b5c;
+
+    color: #24170f;
+
+    font-size: 11px;
+
+    font-weight: 800;
+
+    letter-spacing: 0.6px;
+
+    cursor: pointer;
+
+    transition:
+        transform 0.3s ease,
+        background 0.3s ease,
+        box-shadow 0.3s ease;
+}
+
+
+.order-btn:hover {
+    background: #e0bd80;
+
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 8px 22px rgba(197, 155, 92, 0.25);
+}
+
+
+.cart-icon {
+    font-size: 14px;
+}
+
+
+.cart-text {
+    font-size: 11px;
+}
+
+
+/* =========================
+   CART COUNT
+========================= */
+
+.cart-count {
+    position: absolute;
+
+    top: -8px;
+    right: -7px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    min-width: 19px;
+    height: 19px;
+
+    padding: 0 4px;
+
+    border: 2px solid #24170f;
+
+    border-radius: 50%;
+
+    background: #ffffff;
+
+    color: #a87838;
+
+    font-size: 10px;
+
+    font-weight: 800;
+
+    line-height: 1;
+
+    box-shadow:
+        0 3px 10px rgba(0, 0, 0, 0.25);
+}
+
+
+/* =========================
+   MOBILE TOGGLE
+========================= */
+
+.menu-toggle {
+    display: none;
+
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 5px;
+
+    width: 42px;
+    height: 42px;
+
+    padding: 0;
+
+    border: 1px solid rgba(216, 180, 119, 0.35);
+
+    border-radius: 3px;
+
+    background: rgba(255, 255, 255, 0.05);
+
+    cursor: pointer;
+}
+
+
+.menu-toggle span {
+    display: block;
+
+    width: 19px;
+    height: 1.5px;
+
+    background: #d8b477;
+
+    transition:
+        transform 0.3s ease,
+        opacity 0.3s ease;
+}
+
+
+/* Hamburger → X */
+
+.menu-open .menu-toggle span:nth-child(1) {
+    transform:
+        translateY(6.5px)
+        rotate(45deg);
+}
+
+
+.menu-open .menu-toggle span:nth-child(2) {
+    opacity: 0;
+}
+
+
+.menu-open .menu-toggle span:nth-child(3) {
+    transform:
+        translateY(-6.5px)
+        rotate(-45deg);
+}
+
+
+/* =========================
+   MOBILE MENU
+========================= */
+
+.mobile-menu {
+    display: none;
+}
+
+
+/* =========================================================
+   TABLET
+========================================================= */
+
+@media (max-width: 1100px) {
+
+    .navbar {
+        width: 94%;
+
+        padding-left: 18px;
+
+        gap: 15px;
+    }
+
+
+    .nav-links {
+        gap: 18px;
+    }
+
+
+    .nav-links a {
+        font-size: 12px;
+    }
+
+
+    .user-name {
+        display: none;
+    }
+
+
+    .navbar-actions {
+        gap: 5px;
+    }
+
+
+    .login-btn,
+    .my-orders-btn,
+    .admin-btn,
+    .logout-btn {
+        padding: 8px 9px;
+
+        font-size: 10px;
+    }
+
+
+    .order-btn {
+        padding: 0 12px;
+    }
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 800px) {
+
+    .navbar {
+        top: 10px;
+
+        width: 92%;
+
+        min-height: 60px;
+
+        padding: 9px 12px;
+
+        border-radius: 4px;
+    }
+
+
+    .navbar.navbar-scrolled {
+        top: 7px;
+    }
+
+
+    /* Hide desktop links */
+
+    .nav-links {
+        display: none;
+    }
+
+
+    /* Right actions */
+
+    .navbar-actions {
+        margin-left: auto;
+    }
+
+
+    .navbar-actions .login-btn,
+    .navbar-actions .user-section {
+        display: none;
+    }
+
+
+    /* Cart */
+
+    .order-btn {
+        min-height: 40px;
+
+        padding: 0 12px;
+    }
+
+
+    .cart-text {
+        display: none;
+    }
+
+
+    /* Hamburger */
+
+    .menu-toggle {
+        display: flex;
+    }
+
+
+    /* =========================
+       MOBILE DROPDOWN
+    ========================= */
+
+    .mobile-menu {
+        position: absolute;
+
+        top: calc(100% + 10px);
+
+        left: 0;
+
+        width: 100%;
+
+        display: flex;
+
+        flex-direction: column;
+
+        gap: 3px;
+
+        padding: 10px;
+
+        background: rgba(31, 20, 14, 0.97);
+
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+
+        border: 1px solid rgba(216, 180, 119, 0.2);
+
+        border-radius: 4px;
+
+        box-shadow:
+            0 20px 40px rgba(0, 0, 0, 0.35);
+
+        opacity: 0;
+
+        visibility: hidden;
+
+        transform: translateY(-10px);
+
+        transition:
+            opacity 0.3s ease,
+            transform 0.3s ease,
+            visibility 0.3s ease;
+    }
+
+
+    .menu-open .mobile-menu {
+        opacity: 1;
+
+        visibility: visible;
+
+        transform: translateY(0);
+    }
+
+
+    .mobile-menu a,
+    .mobile-menu button {
+        width: 100%;
+
+        padding: 14px 15px;
+
+        border: none;
+
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+
+        background: transparent;
+
+        color: rgba(255, 255, 255, 0.82);
+
+        text-align: left;
+
+        text-decoration: none;
+
+        font-family: inherit;
+
+        font-size: 13px;
+
+        font-weight: 600;
+
+        letter-spacing: 0.5px;
+
+        cursor: pointer;
+
+        transition:
+            background 0.25s ease,
+            color 0.25s ease,
+            padding-left 0.25s ease;
+    }
+
+
+    .mobile-menu a:hover,
+    .mobile-menu button:hover {
+        padding-left: 22px;
+
+        background: rgba(216, 180, 119, 0.08);
+
+        color: #d8b477;
+    }
+
+
+    .mobile-menu a.active {
+        color: #d8b477;
+
+        background: rgba(216, 180, 119, 0.08);
+    }
+
+
+    .mobile-menu button:last-child {
+        border-bottom: none;
+    }
+
+
+    .mobile-login,
+    .mobile-cart {
+        margin-top: 5px;
+
+        background: rgba(216, 180, 119, 0.08) !important;
+
+        color: #d8b477 !important;
+    }
+
+
+    .mobile-logout {
+        color: #e8a49a !important;
+    }
+
+
+    .mobile-cart {
+        position: relative;
+
+        display: flex;
+
+        align-items: center;
+
+        justify-content: space-between;
+    }
+
+
+    .mobile-cart .cart-count {
+        position: static;
+
+        margin-left: auto;
+
+        border-color: #2a1b14;
+    }
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+========================================================= */
+
+@media (max-width: 480px) {
+
+    .navbar {
+        width: 94%;
+
+        padding: 8px 10px;
+    }
+
+
+    .navbar.navbar-scrolled {
+        top: 6px;
+    }
+
+
+    .logo-text strong {
+        font-size: 16px;
+    }
+
+
+    .logo-text small {
+        font-size: 6px;
+
+        letter-spacing: 1.5px;
+    }
+
+
+    .logo-icon {
+        width: 31px;
+        height: 31px;
+
+        font-size: 14px;
+    }
+
+
+    .order-btn {
+        min-width: 40px;
+
+        padding: 0 10px;
+    }
+
+
+    .menu-toggle {
+        width: 40px;
+        height: 40px;
+    }
+}

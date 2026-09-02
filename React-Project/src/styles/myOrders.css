@@ -1,0 +1,416 @@
+.my-orders-page {
+    min-height: 100vh;
+    padding: 140px 6% 60px;
+    color: white;
+}
+
+
+/* =========================
+   HEADER
+========================= */
+
+.orders-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.orders-header h1 {
+    font-size: 42px;
+    margin-bottom: 10px;
+}
+
+.orders-header p {
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 17px;
+}
+
+
+/* =========================
+   ORDERS CONTAINER
+========================= */
+
+.orders-container {
+    max-width: 1000px;
+    margin: 0 auto;
+
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+
+/* =========================
+   ORDER CARD
+========================= */
+
+.order-card {
+    background: rgba(255, 255, 255, 0.10);
+
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+
+    border: 1px solid rgba(255, 255, 255, 0.18);
+
+    border-radius: 20px;
+
+    padding: 25px;
+
+    box-shadow:
+        0 10px 35px rgba(0, 0, 0, 0.25);
+}
+
+
+/* =========================
+   ORDER TOP
+========================= */
+
+.order-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    gap: 20px;
+
+    padding-bottom: 20px;
+
+    border-bottom:
+        1px solid rgba(255, 255, 255, 0.12);
+}
+
+.order-top h3 {
+    margin: 0 0 6px;
+
+    font-size: 20px;
+}
+
+.order-top p {
+    margin: 0;
+
+    color: rgba(255, 255, 255, 0.60);
+
+    font-size: 14px;
+}
+
+
+/* =========================
+   STATUS
+========================= */
+
+.order-status {
+    padding: 8px 14px;
+
+    border-radius: 20px;
+
+    font-size: 13px;
+
+    font-weight: 700;
+
+    white-space: nowrap;
+}
+
+.status-placed {
+    background: rgba(255, 193, 7, 0.20);
+    color: #ffc107;
+}
+
+.status-confirmed {
+    background: rgba(33, 150, 243, 0.20);
+    color: #42a5f5;
+}
+
+.status-preparing {
+    background: rgba(255, 152, 0, 0.20);
+    color: #ff9800;
+}
+
+.status-delivery {
+    background: rgba(156, 39, 176, 0.20);
+    color: #ce93d8;
+}
+
+.status-delivered {
+    background: rgba(76, 175, 80, 0.20);
+    color: #66bb6a;
+}
+
+.status-cancelled {
+    background: rgba(244, 67, 54, 0.20);
+    color: #ef5350;
+}
+
+
+/* =========================
+   ORDER ITEMS
+========================= */
+
+.order-items {
+    padding: 20px 0;
+}
+
+.order-item {
+    display: flex;
+
+    align-items: center;
+
+    gap: 15px;
+
+    padding: 12px 0;
+
+    border-bottom:
+        1px solid rgba(255, 255, 255, 0.08);
+}
+
+.order-item:last-child {
+    border-bottom: none;
+}
+
+.order-item img {
+    width: 65px;
+    height: 65px;
+
+    object-fit: cover;
+
+    border-radius: 12px;
+}
+
+.item-details {
+    flex: 1;
+}
+
+.item-details h4 {
+    margin: 0 0 5px;
+
+    font-size: 16px;
+}
+
+.item-details p {
+    margin: 0;
+
+    color: rgba(255, 255, 255, 0.65);
+
+    font-size: 14px;
+}
+
+.order-item strong {
+    font-size: 16px;
+}
+
+
+/* =========================
+   CUSTOMER DETAILS
+========================= */
+
+.order-customer {
+    padding: 18px 0;
+
+    border-top:
+        1px solid rgba(255, 255, 255, 0.10);
+
+    border-bottom:
+        1px solid rgba(255, 255, 255, 0.10);
+}
+
+.order-customer h4 {
+    margin: 0 0 10px;
+
+    font-size: 16px;
+}
+
+.order-customer p {
+    margin: 6px 0;
+
+    color: rgba(255, 255, 255, 0.70);
+
+    font-size: 14px;
+}
+
+
+/* =========================
+   ORDER BOTTOM
+========================= */
+
+.order-bottom {
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    padding-top: 20px;
+
+    color: rgba(255, 255, 255, 0.70);
+}
+
+.order-bottom strong {
+    color: white;
+}
+
+.order-total {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: flex-end;
+
+    gap: 4px;
+}
+
+.order-total span {
+    font-size: 13px;
+
+    color: rgba(255, 255, 255, 0.60);
+}
+
+.order-total strong {
+    font-size: 22px;
+
+    color: #ff6b35;
+}
+
+
+/* =========================
+   NO ORDERS
+========================= */
+
+.no-orders {
+    max-width: 600px;
+
+    margin: 50px auto;
+
+    text-align: center;
+
+    padding: 50px 30px;
+
+    background: rgba(255, 255, 255, 0.08);
+
+    backdrop-filter: blur(15px);
+
+    border:
+        1px solid rgba(255, 255, 255, 0.15);
+
+    border-radius: 20px;
+}
+
+.no-orders-icon {
+    font-size: 60px;
+
+    margin-bottom: 15px;
+}
+
+.no-orders h2 {
+    margin-bottom: 10px;
+}
+
+.no-orders p {
+    color: rgba(255, 255, 255, 0.65);
+
+    margin-bottom: 25px;
+}
+
+
+/* =========================
+   BUTTONS
+========================= */
+
+.browse-menu-btn,
+.retry-btn {
+    border: none;
+
+    padding: 12px 22px;
+
+    border-radius: 10px;
+
+    background: #ff6b35;
+
+    color: white;
+
+    font-size: 15px;
+
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition: 0.3s ease;
+}
+
+.browse-menu-btn:hover,
+.retry-btn:hover {
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 7px 20px rgba(255, 107, 53, 0.35);
+}
+
+
+/* =========================
+   LOADING / ERROR
+========================= */
+
+.orders-loading,
+.orders-error {
+    max-width: 600px;
+
+    margin: 80px auto;
+
+    text-align: center;
+
+    padding: 40px;
+
+    background: rgba(255, 255, 255, 0.08);
+
+    backdrop-filter: blur(15px);
+
+    border-radius: 20px;
+}
+
+.orders-loading p,
+.orders-error p {
+    color: rgba(255, 255, 255, 0.65);
+}
+
+
+/* =========================
+   MOBILE
+========================= */
+
+@media (max-width: 768px) {
+
+    .my-orders-page {
+        padding: 120px 20px 40px;
+    }
+
+    .orders-header h1 {
+        font-size: 32px;
+    }
+
+    .order-card {
+        padding: 18px;
+    }
+
+    .order-top {
+        align-items: flex-start;
+
+        flex-direction: column;
+    }
+
+    .order-item img {
+        width: 55px;
+        height: 55px;
+    }
+
+    .order-item strong {
+        font-size: 14px;
+    }
+
+    .order-bottom {
+        align-items: flex-start;
+
+        flex-direction: column;
+
+        gap: 15px;
+    }
+
+    .order-total {
+        align-items: flex-start;
+    }
+}
