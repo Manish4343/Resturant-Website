@@ -7,8 +7,31 @@ import {
 
 import axios from "axios";
 
-
 const AuthContext = createContext();
+
+const API_URL =
+    import.meta.env.VITE_API_URL ||
+    "http://localhost:5000/api";
+
+
+// =========================
+// NORMALIZE USER
+// =========================
+
+const normalizeUser = (userData) => {
+    if (!userData) return null;
+
+    return {
+        ...userData,
+
+        // Backend currently uses isAdmin.
+        // Frontend admin pages use role.
+        role:
+            userData.isAdmin === true
+                ? "admin"
+                : userData.role || "user",
+    };
+};
 
 
 export const AuthProvider = ({ children }) => {
@@ -27,6 +50,34 @@ export const AuthProvider = ({ children }) => {
 
 
     // =========================
+    // SAVE USER
+    // =========================
+
+    const saveUser = (userData) => {
+
+        const normalizedUser =
+            normalizeUser(userData);
+
+        setUser(normalizedUser);
+
+        if (normalizedUser) {
+
+            localStorage.setItem(
+                "user",
+                JSON.stringify(normalizedUser)
+            );
+
+        } else {
+
+            localStorage.removeItem("user");
+
+        }
+
+        return normalizedUser;
+    };
+
+
+    // =========================
     // GET CURRENT USER
     // =========================
 
@@ -35,7 +86,7 @@ export const AuthProvider = ({ children }) => {
         try {
 
             const response = await axios.get(
-                "http://localhost:5000/api/auth/me",
+                `${API_URL}/auth/me`,
                 {
                     headers: {
                         Authorization:
@@ -47,17 +98,15 @@ export const AuthProvider = ({ children }) => {
 
             if (response.data.success) {
 
-                setUser(
+                saveUser(
                     response.data.data
                 );
 
-                // Keep localStorage user updated
+            } else {
 
-                localStorage.setItem(
-                    "user",
-                    JSON.stringify(
-                        response.data.data
-                    )
+                throw new Error(
+                    response.data.message ||
+                    "Authentication failed"
                 );
 
             }
@@ -69,8 +118,6 @@ export const AuthProvider = ({ children }) => {
                 error
             );
 
-
-            // Remove invalid token
 
             localStorage.removeItem(
                 "token"
@@ -131,7 +178,7 @@ export const AuthProvider = ({ children }) => {
             const response =
                 await axios.post(
 
-                    "http://localhost:5000/api/auth/login",
+                    `${API_URL}/auth/login`,
 
                     {
                         email,
@@ -165,7 +212,19 @@ export const AuthProvider = ({ children }) => {
             } = response.data.data;
 
 
-            // Save token
+            // =========================
+            // NORMALIZE ADMIN USER
+            // =========================
+
+            const normalizedUser =
+                normalizeUser(
+                    loggedInUser
+                );
+
+
+            // =========================
+            // SAVE TOKEN
+            // =========================
 
             localStorage.setItem(
                 "token",
@@ -173,28 +232,44 @@ export const AuthProvider = ({ children }) => {
             );
 
 
-            // Save user
+            // =========================
+            // SAVE USER
+            // =========================
 
             localStorage.setItem(
                 "user",
                 JSON.stringify(
-                    loggedInUser
+                    normalizedUser
                 )
             );
 
 
-            // Update state
+            // =========================
+            // UPDATE STATE
+            // =========================
 
             setToken(newToken);
 
-            setUser(loggedInUser);
+            setUser(normalizedUser);
+
+
+            console.log(
+                "Logged in user:",
+                normalizedUser
+            );
+
+
+            console.log(
+                "Admin:",
+                normalizedUser?.role === "admin"
+            );
 
 
             return {
 
                 success: true,
 
-                user: loggedInUser,
+                user: normalizedUser,
 
                 token: newToken,
 
@@ -242,7 +317,7 @@ export const AuthProvider = ({ children }) => {
             const response =
                 await axios.post(
 
-                    "http://localhost:5000/api/auth/register",
+                    `${API_URL}/auth/register`,
 
                     {
                         name,
@@ -277,7 +352,15 @@ export const AuthProvider = ({ children }) => {
             } = response.data.data;
 
 
-            // Save token
+            const normalizedUser =
+                normalizeUser(
+                    newUser
+                );
+
+
+            // =========================
+            // SAVE TOKEN
+            // =========================
 
             localStorage.setItem(
                 "token",
@@ -285,28 +368,28 @@ export const AuthProvider = ({ children }) => {
             );
 
 
-            // Save user
-
             localStorage.setItem(
                 "user",
                 JSON.stringify(
-                    newUser
+                    normalizedUser
                 )
             );
 
 
-            // Update state
+            // =========================
+            // UPDATE STATE
+            // =========================
 
             setToken(newToken);
 
-            setUser(newUser);
+            setUser(normalizedUser);
 
 
             return {
 
                 success: true,
 
-                user: newUser,
+                user: normalizedUser,
 
                 token: newToken,
 
