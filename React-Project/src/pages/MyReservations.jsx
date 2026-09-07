@@ -1,1752 +1,1557 @@
-import {
-    useCallback,
-    useEffect,
-    useMemo,
-    useState,
-} from "react";
-
-import {
-    useNavigate,
-} from "react-router-dom";
-
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
-
-import {
-    useAuth,
-} from "../context/AuthContext";
-
+import { useAuth } from "../context/AuthContext";
 import "../styles/myReservations.css";
 
-
-// =====================================================
-// API
-// =====================================================
-
 const API_URL =
-    import.meta.env.VITE_API_URL ||
-    "http://localhost:5000/api";
-
-
-// =====================================================
-// STATUS CONFIG
-// =====================================================
+  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 const STATUS_CONFIG = {
-    PENDING: {
-        label: "Pending Review",
-        icon: "🟡",
-        description:
-            "Your reservation request has been received and is waiting for restaurant approval.",
-        className: "pending",
-    },
+  PENDING: {
+    label: "Pending Review",
+    icon: "⏳",
+    className: "pending",
+    description: "Our team is reviewing your reservation.",
+  },
 
-    CONFIRMED: {
-        label: "Confirmed",
-        icon: "✅",
-        description:
-            "Great! Your table has been confirmed by the restaurant.",
-        className: "confirmed",
-    },
+  CONFIRMED: {
+    label: "Confirmed",
+    icon: "✓",
+    className: "confirmed",
+    description: "Your table has been confirmed.",
+  },
 
-    REJECTED: {
-        label: "Rejected",
-        icon: "❌",
-        description:
-            "Unfortunately, this reservation could not be confirmed.",
-        className: "rejected",
-    },
+  REJECTED: {
+    label: "Rejected",
+    icon: "×",
+    className: "rejected",
+    description: "This reservation could not be confirmed.",
+  },
 
-    CANCELLED: {
-        label: "Cancelled",
-        icon: "🚫",
-        description:
-            "This reservation has been cancelled.",
-        className: "cancelled",
-    },
+  CANCELLED: {
+    label: "Cancelled",
+    icon: "−",
+    className: "cancelled",
+    description: "This reservation has been cancelled.",
+  },
 };
 
-
-// =====================================================
-// HELPERS
-// =====================================================
-
-const formatCurrency = (value) => {
-    return `₹${Number(value || 0).toLocaleString(
-        "en-IN",
-        {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 2,
-        }
-    )}`;
+const TABLE_ICONS = {
+  "Simple Table": "🍽️",
+  "Family Table": "👨‍👩‍👧‍👦",
+  "Birthday Celebration": "🎂",
+  "Candle Light Dinner": "🕯️",
+  "Premium / Private": "✨",
 };
-
 
 const formatDate = (date) => {
+  if (!date) return "—";
 
-    if (!date) {
-        return "—";
-    }
-
-    const parsedDate =
-        new Date(date);
-
-    if (
-        Number.isNaN(
-            parsedDate.getTime()
-        )
-    ) {
-        return date;
-    }
-
-    return parsedDate.toLocaleDateString(
-        "en-IN",
-        {
-            weekday: "short",
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-        }
-    );
+  try {
+    return new Date(date).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return date;
+  }
 };
-
 
 const formatTime = (time) => {
+  if (!time) return "—";
 
-    if (!time) {
-        return "—";
-    }
+  const parts = time.split(":");
 
-    // Backend normally stores HH:mm.
-    // Convert to readable 12-hour format.
+  if (parts.length < 2) {
+    return time;
+  }
 
-    const parts =
-        String(time).split(":");
+  let hours = Number(parts[0]);
+  const minutes = parts[1];
 
-    if (
-        parts.length < 2
-    ) {
-        return time;
-    }
+  if (Number.isNaN(hours)) {
+    return time;
+  }
 
-    const hours =
-        Number(parts[0]);
+  const suffix = hours >= 12 ? "PM" : "AM";
 
-    const minutes =
-        parts[1];
+  hours = hours % 12 || 12;
 
-    if (
-        Number.isNaN(hours)
-    ) {
-        return time;
-    }
-
-    const suffix =
-        hours >= 12
-            ? "PM"
-            : "AM";
-
-    const displayHour =
-        hours % 12 || 12;
-
-    return `${displayHour}:${minutes} ${suffix}`;
+  return `${hours}:${minutes} ${suffix}`;
 };
 
+const formatCurrency = (value) => {
+  return `₹${Number(value || 0).toLocaleString("en-IN")}`;
+};
 
-const formatCreatedAt = (date) => {
+const getTableIcon = (tableType) => {
+  return TABLE_ICONS[tableType] || "🍽️";
+};
 
-    if (!date) {
-        return "";
+const getStatusConfig = (status) => {
+  return (
+    STATUS_CONFIG[status] || {
+      label: status || "Unknown",
+      icon: "•",
+      className: "unknown",
+      description: "Reservation status unavailable.",
     }
+  );
+};
 
-    const parsedDate =
-        new Date(date);
+const getReservationId = (reservation) => {
+  return reservation?._id || reservation?.id;
+};
 
-    if (
-        Number.isNaN(
-            parsedDate.getTime()
-        )
-    ) {
-        return "";
-    }
+const getReservationDateTime = (reservation) => {
+  if (!reservation?.date) return null;
 
-    return parsedDate.toLocaleString(
-        "en-IN",
-        {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-            hour: "numeric",
-            minute: "2-digit",
+  const dateString = new Date(reservation.date)
+    .toISOString()
+    .split("T")[0];
+
+  if (!reservation.time) {
+    return new Date(`${dateString}T23:59:00`);
+  }
+
+  return new Date(`${dateString}T${reservation.time}:00`);
+};
+
+const isUpcoming = (reservation) => {
+  const status = reservation?.status;
+
+  if (status === "CANCELLED" || status === "REJECTED") {
+    return false;
+  }
+
+  const reservationDate = getReservationDateTime(reservation);
+
+  if (!reservationDate) return false;
+
+  return reservationDate >= new Date();
+};
+
+function MyReservations() {
+  const navigate = useNavigate();
+
+  const { user, token, loading: authLoading } = useAuth();
+
+  const [reservations, setReservations] = useState([]);
+
+  const previousReservationsRef = React.useRef(new Map());
+  const firstFetchRef = React.useRef(true);
+
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const [activeFilter, setActiveFilter] = useState("ALL");
+
+  const [selectedReservation, setSelectedReservation] =
+    useState(null);
+
+  const [cancelLoading, setCancelLoading] =
+    useState(false);
+
+  const [showCancelModal, setShowCancelModal] =
+    useState(false);
+
+  // =====================================================
+  // FETCH RESERVATIONS
+  // =====================================================
+
+  const fetchReservations = useCallback(
+    async (showLoader = true) => {
+      const savedToken =
+        token || localStorage.getItem("token");
+
+      if (!savedToken) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        if (showLoader) {
+          setLoading(true);
+        } else {
+          setRefreshing(true);
         }
-    );
-};
 
+        setError("");
 
-const getStatusConfig = (
-    status
-) => {
-
-    return (
-        STATUS_CONFIG[status] ||
-        {
-            label: status || "Unknown",
-            icon: "ℹ️",
-            description:
-                "Reservation status updated.",
-            className: "unknown",
-        }
-    );
-};
-
-
-// =====================================================
-// COMPONENT
-// =====================================================
-
-export default function MyReservations() {
-
-    const navigate =
-        useNavigate();
-
-    const {
-        user,
-        token,
-        loading: authLoading,
-    } = useAuth();
-
-
-    // =================================================
-    // STATE
-    // =================================================
-
-    const [
-        reservations,
-        setReservations,
-    ] = useState([]);
-
-    const [
-        loading,
-        setLoading,
-    ] = useState(true);
-
-    const [
-        refreshing,
-        setRefreshing,
-    ] = useState(false);
-
-    const [
-        error,
-        setError,
-    ] = useState("");
-
-    const [
-        cancellingId,
-        setCancellingId,
-    ] = useState(null);
-
-    const [
-        filter,
-        setFilter,
-    ] = useState("ALL");
-
-
-    // =================================================
-    // TOKEN
-    // =================================================
-
-    const getToken = useCallback(() => {
-
-        return (
-            token ||
-            localStorage.getItem(
-                "token"
-            )
-        );
-
-    }, [token]);
-
-
-    // =================================================
-    // FETCH RESERVATIONS
-    // =================================================
-
-    const fetchReservations =
-        useCallback(
-            async (
-                showRefresh = false
-            ) => {
-
-                try {
-
-                    if (
-                        showRefresh
-                    ) {
-
-                        setRefreshing(
-                            true
-                        );
-
-                    } else {
-
-                        setLoading(
-                            true
-                        );
-
-                    }
-
-                    setError("");
-
-
-                    const savedToken =
-                        getToken();
-
-
-                    if (
-                        !savedToken
-                    ) {
-
-                        navigate(
-                            "/login"
-                        );
-
-                        return;
-                    }
-
-
-                    const response =
-                        await axios.get(
-
-                            `${API_URL}/reservations/my`,
-
-                            {
-                                headers: {
-                                    Authorization:
-                                        `Bearer ${savedToken}`,
-                                },
-                            }
-
-                        );
-
-
-                    if (
-                        response.data?.success
-                    ) {
-
-                        setReservations(
-                            response.data?.data ||
-                            []
-                        );
-
-                    } else {
-
-                        setReservations([]);
-
-                        setError(
-                            response.data?.message ||
-                            "Unable to load your reservations."
-                        );
-
-                    }
-
-                } catch (err) {
-
-                    console.error(
-                        "Fetch reservations error:",
-                        err
-                    );
-
-
-                    if (
-                        err.response?.status ===
-                        401
-                    ) {
-
-                        localStorage.removeItem(
-                            "token"
-                        );
-
-                        localStorage.removeItem(
-                            "user"
-                        );
-
-                        navigate(
-                            "/login"
-                        );
-
-                        return;
-                    }
-
-
-                    setError(
-                        err.response?.data?.message ||
-                        "Unable to load your reservations."
-                    );
-
-                } finally {
-
-                    setLoading(
-                        false
-                    );
-
-                    setRefreshing(
-                        false
-                    );
-
-                }
-
+        const response = await axios.get(
+          `${API_URL}/reservations/my`,
+          {
+            headers: {
+              Authorization: `Bearer ${savedToken}`,
             },
-            [
-                getToken,
-                navigate,
-            ]
+            timeout: 15000,
+          }
         );
 
+        console.log(
+          "My Reservations Response:",
+          response.data
+        );
 
-    // =================================================
-    // INITIAL LOAD
-    // =================================================
+        const responseData = response.data;
 
-    useEffect(() => {
+        let reservationList = [];
 
-        if (
-            authLoading
+        if (Array.isArray(responseData)) {
+          reservationList = responseData;
+        } else if (
+          Array.isArray(responseData?.reservations)
         ) {
-            return;
+          reservationList = responseData.reservations;
+        } else if (
+          Array.isArray(responseData?.data)
+        ) {
+          reservationList = responseData.data;
         }
 
+        // =================================================
+        // DETECT ADMIN STATUS UPDATE
+        // =================================================
 
-        if (!user) {
+        if (!firstFetchRef.current) {
+          const changed = reservationList.find(
+            (reservation) => {
+              const id = getReservationId(reservation);
 
-            navigate(
-                "/login"
+              const previous = id
+                ? previousReservationsRef.current.get(id)
+                : null;
+
+              if (!previous) return false;
+
+              return (
+                previous.status !== reservation.status ||
+                previous.assignedTable !==
+                  (reservation.assignedTable || "") ||
+                previous.adminNote !==
+                  (reservation.adminNote || "")
+              );
+            }
+          );
+
+          if (changed) {
+            const config = getStatusConfig(
+              changed.status
             );
 
-            return;
+            let message =
+              `Your ${
+                changed.tableType || "table"
+              } reservation is now ` +
+              `${config.label.toLowerCase()}.`;
+
+            if (
+              changed.status === "CONFIRMED" &&
+              changed.assignedTable
+            ) {
+              message +=
+                ` Your assigned table is ${changed.assignedTable}.`;
+            }
+
+            if (
+              changed.status === "REJECTED" &&
+              changed.adminNote
+            ) {
+              message +=
+                ` Reason: ${changed.adminNote}`;
+            }
+
+            setSuccess(message);
+
+            setSelectedReservation((current) => {
+              if (!current) return current;
+
+              return getReservationId(current) ===
+                getReservationId(changed)
+                ? changed
+                : current;
+            });
+          }
         }
 
-
-        fetchReservations();
-
-    }, [
-        authLoading,
-        user,
-        fetchReservations,
-        navigate,
-    ]);
-
-
-    // =================================================
-    // CANCEL RESERVATION
-    // =================================================
-
-    const handleCancel =
-        async (
-            reservationId
-        ) => {
-
-            if (
-                !reservationId
-            ) {
-                return;
-            }
-
-
-            const confirmed =
-                window.confirm(
-                    "Are you sure you want to cancel this reservation?"
-                );
-
-
-            if (
-                !confirmed
-            ) {
-                return;
-            }
-
-
-            try {
-
-                setCancellingId(
-                    reservationId
-                );
-
-
-                const savedToken =
-                    getToken();
-
-
-                if (
-                    !savedToken
-                ) {
-
-                    navigate(
-                        "/login"
-                    );
-
-                    return;
-                }
-
-
-                const response =
-                    await axios.patch(
-
-                        `${API_URL}/reservations/${reservationId}/cancel`,
-
-                        {},
-
-                        {
-                            headers: {
-                                Authorization:
-                                    `Bearer ${savedToken}`,
-                            },
-                        }
-
-                    );
-
-
-                if (
-                    response.data?.success
-                ) {
-
-                    // Update immediately without
-                    // waiting for another request.
-
-                    setReservations(
-                        (current) =>
-                            current.map(
-                                (reservation) =>
-                                    reservation._id ===
-                                    reservationId
-                                        ? {
-                                            ...reservation,
-                                            status:
-                                                "CANCELLED",
-                                        }
-                                        : reservation
-                            )
-                    );
-
-                } else {
-
-                    throw new Error(
-                        response.data?.message ||
-                        "Unable to cancel reservation."
-                    );
-
-                }
-
-            } catch (err) {
-
-                console.error(
-                    "Cancel reservation error:",
-                    err
-                );
-
-
-                alert(
-                    err.response?.data?.message ||
-                    err.message ||
-                    "Unable to cancel reservation."
-                );
-
-            } finally {
-
-                setCancellingId(
-                    null
-                );
-
-            }
-
-        };
-
-
-    // =================================================
-    // FILTER
-    // =================================================
-
-    const filteredReservations =
-        useMemo(() => {
-
-            if (
-                filter === "ALL"
-            ) {
-
-                return reservations;
-
-            }
-
-
-            return reservations.filter(
-                (reservation) =>
-                    reservation.status ===
-                    filter
-            );
-
-        }, [
-            reservations,
-            filter,
-        ]);
-
-
-    // =================================================
-    // STATS
-    // =================================================
-
-    const stats =
-        useMemo(() => {
-
-            return {
-
-                total:
-                    reservations.length,
-
-                pending:
-                    reservations.filter(
-                        (item) =>
-                            item.status ===
-                            "PENDING"
-                    ).length,
-
-                confirmed:
-                    reservations.filter(
-                        (item) =>
-                            item.status ===
-                            "CONFIRMED"
-                    ).length,
-
-                cancelled:
-                    reservations.filter(
-                        (item) =>
-                            item.status ===
-                            "CANCELLED"
-                    ).length,
-
-            };
-
-        }, [
-            reservations,
-        ]);
-
-
-    // =================================================
-    // LOADING
-    // =================================================
-
-    if (
-        authLoading
-    ) {
-
-        return (
-
-            <main className="my-reservations-page">
-
-                <div className="reservation-loading">
-
-                    <div className="loading-icon">
-                        🍽️
-                    </div>
-
-                    <h2>
-                        Checking your account...
-                    </h2>
-
-                    <p>
-                        Please wait.
-                    </p>
-
-                </div>
-
-            </main>
-
+        // =================================================
+        // SAVE CURRENT RESERVATION SNAPSHOT
+        // =================================================
+
+        previousReservationsRef.current =
+          new Map(
+            reservationList
+              .map((reservation) => {
+                const id =
+                  getReservationId(reservation);
+
+                if (!id) return null;
+
+                return [
+                  id,
+                  {
+                    status: reservation.status,
+
+                    assignedTable:
+                      reservation.assignedTable || "",
+
+                    adminNote:
+                      reservation.adminNote || "",
+                  },
+                ];
+              })
+              .filter(Boolean)
+          );
+
+        firstFetchRef.current = false;
+
+        setReservations(reservationList);
+      } catch (err) {
+        console.error(
+          "My Reservations Error:",
+          err
         );
 
-    }
+        if (err.response?.status === 401) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
 
+          navigate("/login", {
+            state: {
+              from: "/my-reservations",
+            },
+          });
 
-    // =================================================
-    // NOT LOGGED IN
-    // =================================================
+          return;
+        }
 
-    if (
-        !user
-    ) {
-
-        return (
-
-            <main className="my-reservations-page">
-
-                <div className="reservation-empty-card">
-
-                    <div className="empty-icon">
-                        🔐
-                    </div>
-
-                    <h1>
-                        Login Required
-                    </h1>
-
-                    <p>
-                        Please login to view your
-                        reservations.
-                    </p>
-
-                    <button
-                        type="button"
-                        onClick={() =>
-                            navigate(
-                                "/login"
-                            )
-                        }
-                        className="primary-reservation-btn"
-                    >
-                        Login to Continue →
-                    </button>
-
-                </div>
-
-            </main>
-
+        setError(
+          err.response?.data?.message ||
+            "Unable to load your reservations. Please try again."
         );
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [token, navigate]
+  );
 
+  // =====================================================
+  // INITIAL LOAD
+  // =====================================================
+
+  useEffect(() => {
+    if (authLoading) return;
+
+    if (!user) {
+      navigate("/login", {
+        replace: true,
+        state: {
+          from: "/my-reservations",
+        },
+      });
+
+      return;
     }
 
+    fetchReservations(true);
+  }, [
+    user,
+    authLoading,
+    navigate,
+    fetchReservations,
+  ]);
 
-    // =================================================
-    // MAIN UI
-    // =================================================
+  // =====================================================
+  // LIVE RESERVATION STATUS UPDATES
+  // =====================================================
 
+  useEffect(() => {
+    if (authLoading || !user || !token) return;
+
+    const intervalId = window.setInterval(() => {
+      fetchReservations(false);
+    }, 8000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [
+    authLoading,
+    user,
+    token,
+    fetchReservations,
+  ]);
+
+  // =====================================================
+  // AUTO CLEAR SUCCESS MESSAGE
+  // =====================================================
+
+  useEffect(() => {
+    if (!success) return;
+
+    const timer = window.setTimeout(() => {
+      setSuccess("");
+    }, 4500);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [success]);
+
+  // =====================================================
+  // FILTERED RESERVATIONS
+  // =====================================================
+
+  const filteredReservations = useMemo(() => {
+    if (activeFilter === "ALL") {
+      return reservations;
+    }
+
+    if (activeFilter === "UPCOMING") {
+      return reservations.filter(isUpcoming);
+    }
+
+    return reservations.filter(
+      (reservation) =>
+        reservation.status === activeFilter
+    );
+  }, [
+    reservations,
+    activeFilter,
+  ]);
+
+  // =====================================================
+  // STATS
+  // =====================================================
+
+  const stats = useMemo(() => {
+    const upcoming =
+      reservations.filter(isUpcoming).length;
+
+    const confirmed =
+      reservations.filter(
+        (item) => item.status === "CONFIRMED"
+      ).length;
+
+    const pending =
+      reservations.filter(
+        (item) => item.status === "PENDING"
+      ).length;
+
+    const completed =
+      reservations.filter(
+        (item) =>
+          item.status === "CONFIRMED" &&
+          !isUpcoming(item)
+      ).length;
+
+    return {
+      total: reservations.length,
+      upcoming,
+      confirmed,
+      pending,
+      completed,
+    };
+  }, [reservations]);
+
+  // =====================================================
+  // CANCEL MODAL
+  // =====================================================
+
+  const openCancelModal = (reservation) => {
+    setSelectedReservation(reservation);
+    setShowCancelModal(true);
+
+    setError("");
+    setSuccess("");
+  };
+
+  const closeCancelModal = () => {
+    if (cancelLoading) return;
+
+    setShowCancelModal(false);
+    setSelectedReservation(null);
+  };
+
+  // =====================================================
+  // CANCEL RESERVATION
+  // =====================================================
+
+  const handleCancelReservation = async () => {
+    if (!selectedReservation) return;
+
+    const reservationId =
+      getReservationId(selectedReservation);
+
+    if (!reservationId) {
+      setError(
+        "Reservation ID is missing."
+      );
+      return;
+    }
+
+    const savedToken =
+      token || localStorage.getItem("token");
+
+    if (!savedToken) {
+      navigate("/login");
+      return;
+    }
+
+    try {
+      setCancelLoading(true);
+      setError("");
+
+      await axios.patch(
+        `${API_URL}/reservations/${reservationId}/cancel`,
+        {},
+        {
+          headers: {
+            Authorization:
+              `Bearer ${savedToken}`,
+          },
+          timeout: 15000,
+        }
+      );
+
+      setShowCancelModal(false);
+      setSelectedReservation(null);
+
+      setSuccess(
+        "Your reservation has been cancelled successfully."
+      );
+
+      await fetchReservations(false);
+    } catch (err) {
+      console.error(
+        "Cancel Reservation Error:",
+        err
+      );
+
+      setError(
+        err.response?.data?.message ||
+          "Unable to cancel reservation. Please try again."
+      );
+    } finally {
+      setCancelLoading(false);
+    }
+  };
+
+  // =====================================================
+  // LOADING
+  // =====================================================
+
+  if (authLoading || loading) {
     return (
+      <main className="my-reservations-page">
+        <div className="reservations-loading">
+          <div className="loading-spinner" />
 
-        <main className="my-reservations-page">
+          <h2>
+            Loading your reservations...
+          </h2>
 
-            <div className="my-reservations-container">
+          <p>
+            Please wait while we fetch your table bookings.
+          </p>
+        </div>
+      </main>
+    );
+  }
 
+  // =====================================================
+  // RENDER
+  // =====================================================
 
-                {/* =================================================
-                    HEADER
-                ================================================= */}
+  return (
+    <main className="my-reservations-page">
 
-                <header className="my-reservations-header">
+      {/* =================================================
+          PAGE HEADER
+      ================================================= */}
 
-                    <div>
+      <div className="reservations-container">
 
-                        <span className="reservation-eyebrow">
-                            SWAAD & SPICE HOUSE
-                        </span>
+        <section className="reservations-header">
 
-                        <h1>
-                            My Reservations
-                        </h1>
+          <div className="header-content">
 
-                        <p>
-                            Track your table bookings,
-                            dining experiences and
-                            reservation status in one place.
-                        </p>
+            <span className="header-eyebrow">
+              YOUR DINING JOURNEY
+            </span>
 
-                    </div>
+            <h1>
+              My Reservations
+            </h1>
 
+            <p>
+              Manage your table bookings and
+              keep track of your upcoming dining experiences.
+            </p>
 
-                    <div className="reservation-header-actions">
+          </div>
 
-                        <button
-                            type="button"
-                            className="secondary-reservation-btn"
-                            onClick={() =>
-                                navigate(
-                                    "/reservation"
-                                )
-                            }
-                        >
-                            + Book a Table
-                        </button>
+          <button
+            type="button"
+            className="new-reservation-btn"
+            onClick={() =>
+              navigate("/reservation")
+            }
+          >
+            <span>+</span>
+            New Reservation
+          </button>
 
+        </section>
 
-                        <button
-                            type="button"
-                            className="refresh-reservation-btn"
-                            onClick={() =>
-                                fetchReservations(
-                                    true
-                                )
-                            }
-                            disabled={
-                                refreshing
-                            }
-                        >
-                            {refreshing
-                                ? "⏳ Refreshing..."
-                                : "🔄 Refresh"}
-                        </button>
+        {/* =================================================
+            SUCCESS MESSAGE
+        ================================================= */}
 
-                    </div>
+        {success && (
+          <div className="reservation-alert success-alert">
 
-                </header>
+            <span className="alert-icon">
+              ✓
+            </span>
 
+            <div>
+              <strong>
+                Reservation Updated
+              </strong>
 
-                {/* =================================================
-                    STATS
-                ================================================= */}
+              <p>
+                {success}
+              </p>
+            </div>
 
-                <section className="reservation-stats">
+            <button
+              type="button"
+              onClick={() =>
+                setSuccess("")
+              }
+            >
+              ×
+            </button>
 
-                    <div className="reservation-stat-card">
+          </div>
+        )}
 
-                        <span className="stat-icon">
-                            📋
-                        </span>
+        {/* =================================================
+            ERROR MESSAGE
+        ================================================= */}
+
+        {error && (
+          <div className="reservation-alert error-alert">
+
+            <span className="alert-icon">
+              !
+            </span>
+
+            <div>
+              <strong>
+                Something went wrong
+              </strong>
+
+              <p>
+                {error}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() =>
+                setError("")
+              }
+            >
+              ×
+            </button>
+
+          </div>
+        )}
+
+        {/* =================================================
+            STATS
+        ================================================= */}
+
+        <section className="reservation-stats">
+
+          <div className="reservation-stat-card">
+
+            <div className="stat-icon">
+              📋
+            </div>
+
+            <div>
+              <span>
+                Total Reservations
+              </span>
+
+              <strong>
+                {stats.total}
+              </strong>
+            </div>
+
+          </div>
+
+          <div className="reservation-stat-card">
+
+            <div className="stat-icon">
+              📅
+            </div>
+
+            <div>
+              <span>
+                Upcoming
+              </span>
+
+              <strong>
+                {stats.upcoming}
+              </strong>
+            </div>
+
+          </div>
+
+          <div className="reservation-stat-card">
+
+            <div className="stat-icon">
+              ✓
+            </div>
+
+            <div>
+              <span>
+                Confirmed
+              </span>
+
+              <strong>
+                {stats.confirmed}
+              </strong>
+            </div>
+
+          </div>
+
+          <div className="reservation-stat-card">
+
+            <div className="stat-icon">
+              ⏳
+            </div>
+
+            <div>
+              <span>
+                Pending
+              </span>
+
+              <strong>
+                {stats.pending}
+              </strong>
+            </div>
+
+          </div>
+
+          <div className="reservation-stat-card">
+
+            <div className="stat-icon">
+              ⭐
+            </div>
+
+            <div>
+              <span>
+                Completed
+              </span>
+
+              <strong>
+                {stats.completed}
+              </strong>
+            </div>
+
+          </div>
+
+        </section>
+
+        {/* =================================================
+            TOOLBAR
+        ================================================= */}
+
+        <section className="reservations-toolbar">
+
+          <div className="reservation-filters">
+
+            {[
+              ["ALL", "All"],
+              ["UPCOMING", "Upcoming"],
+              ["CONFIRMED", "Confirmed"],
+              ["PENDING", "Pending"],
+              ["REJECTED", "Rejected"],
+              ["CANCELLED", "Cancelled"],
+            ].map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                className={
+                  activeFilter === value
+                    ? "filter-btn active"
+                    : "filter-btn"
+                }
+                onClick={() =>
+                  setActiveFilter(value)
+                }
+              >
+                {label}
+
+                <span>
+                  {value === "ALL"
+                    ? reservations.length
+                    : value === "UPCOMING"
+                    ? stats.upcoming
+                    : reservations.filter(
+                        (item) =>
+                          item.status === value
+                      ).length}
+                </span>
+              </button>
+            ))}
+
+          </div>
+
+          <div className="toolbar-actions">
+
+            {token && (
+              <span className="live-update-indicator">
+                <span className="live-dot" />
+                Live updates
+              </span>
+            )}
+
+            <button
+              type="button"
+              className="refresh-reservations-btn"
+              onClick={() =>
+                fetchReservations(false)
+              }
+              disabled={refreshing}
+            >
+              <span
+                className={
+                  refreshing
+                    ? "refresh-icon spinning"
+                    : "refresh-icon"
+                }
+              >
+                ↻
+              </span>
+
+              {refreshing
+                ? "Refreshing..."
+                : "Refresh"}
+            </button>
+
+          </div>
+
+        </section>
+
+        {/* =================================================
+            RESERVATION LIST
+        ================================================= */}
+
+        {filteredReservations.length === 0 ? (
+
+          <section className="empty-reservations">
+
+            <div className="empty-icon">
+              🍽️
+            </div>
+
+            <span className="header-eyebrow">
+              NOTHING HERE YET
+            </span>
+
+            <h2>
+              No reservations found
+            </h2>
+
+            <p>
+              {activeFilter === "ALL"
+                ? "You don't have any reservations yet. Book a table and make your next visit special."
+                : "There are no reservations matching this filter."}
+            </p>
+
+            <button
+              type="button"
+              className="new-reservation-btn"
+              onClick={() =>
+                navigate("/reservation")
+              }
+            >
+              <span>+</span>
+              Reserve a Table
+            </button>
+
+          </section>
+
+        ) : (
+
+          <section className="reservations-list">
+
+            {filteredReservations.map(
+              (reservation) => {
+
+                const statusConfig =
+                  getStatusConfig(
+                    reservation.status
+                  );
+
+                const upcoming =
+                  isUpcoming(reservation);
+
+                const reservationId =
+                  getReservationId(
+                    reservation
+                  );
+
+                return (
+                  <article
+                    key={reservationId}
+                    className="reservation-card"
+                  >
+
+                    {/* ==============================
+                        CARD TOP
+                    ============================== */}
+
+                    <div className="reservation-card-top">
+
+                      <div className="reservation-type">
+
+                        <div className="table-icon">
+                          {getTableIcon(
+                            reservation.tableType
+                          )}
+                        </div>
 
                         <div>
 
-                            <small>
-                                Total
-                            </small>
+                          <span>
+                            TABLE RESERVATION
+                          </span>
 
-                            <strong>
-                                {stats.total}
-                            </strong>
-
-                        </div>
-
-                    </div>
-
-
-                    <div className="reservation-stat-card">
-
-                        <span className="stat-icon">
-                            🟡
-                        </span>
-
-                        <div>
-
-                            <small>
-                                Pending
-                            </small>
-
-                            <strong>
-                                {stats.pending}
-                            </strong>
+                          <h2>
+                            {reservation.tableType ||
+                              "Table Reservation"}
+                          </h2>
 
                         </div>
 
-                    </div>
+                      </div>
 
-
-                    <div className="reservation-stat-card">
-
-                        <span className="stat-icon">
-                            ✅
-                        </span>
-
-                        <div>
-
-                            <small>
-                                Confirmed
-                            </small>
-
-                            <strong>
-                                {stats.confirmed}
-                            </strong>
-
-                        </div>
-
-                    </div>
-
-
-                    <div className="reservation-stat-card">
-
-                        <span className="stat-icon">
-                            🚫
-                        </span>
-
-                        <div>
-
-                            <small>
-                                Cancelled
-                            </small>
-
-                            <strong>
-                                {stats.cancelled}
-                            </strong>
-
-                        </div>
-
-                    </div>
-
-                </section>
-
-
-                {/* =================================================
-                    ERROR
-                ================================================= */}
-
-                {error && (
-
-                    <div className="reservation-error">
-
+                      <div
+                        className={`reservation-status ${statusConfig.className}`}
+                      >
                         <span>
-                            ⚠️
+                          {statusConfig.icon}
                         </span>
 
-                        <p>
-                            {error}
-                        </p>
-
-                        <button
-                            type="button"
-                            onClick={() =>
-                                fetchReservations()
-                            }
-                        >
-                            Try Again
-                        </button>
+                        {statusConfig.label}
+                      </div>
 
                     </div>
 
-                )}
+                    {/* ==============================
+                        MAIN DETAILS
+                    ============================== */}
 
+                    <div className="reservation-card-body">
 
-                {/* =================================================
-                    FILTER
-                ================================================= */}
+                      <div className="reservation-main-details">
 
-                {!loading &&
-                    reservations.length > 0 && (
+                        <div className="reservation-detail">
 
-                        <section className="reservation-filters">
+                          <span>
+                            DATE
+                          </span>
 
-                            <button
-                                type="button"
-                                className={
-                                    filter === "ALL"
-                                        ? "active"
-                                        : ""
-                                }
-                                onClick={() =>
-                                    setFilter(
-                                        "ALL"
-                                    )
-                                }
-                            >
-                                All
-                            </button>
-
-
-                            <button
-                                type="button"
-                                className={
-                                    filter === "PENDING"
-                                        ? "active"
-                                        : ""
-                                }
-                                onClick={() =>
-                                    setFilter(
-                                        "PENDING"
-                                    )
-                                }
-                            >
-                                🟡 Pending
-                            </button>
-
-
-                            <button
-                                type="button"
-                                className={
-                                    filter === "CONFIRMED"
-                                        ? "active"
-                                        : ""
-                                }
-                                onClick={() =>
-                                    setFilter(
-                                        "CONFIRMED"
-                                    )
-                                }
-                            >
-                                ✅ Confirmed
-                            </button>
-
-
-                            <button
-                                type="button"
-                                className={
-                                    filter === "REJECTED"
-                                        ? "active"
-                                        : ""
-                                }
-                                onClick={() =>
-                                    setFilter(
-                                        "REJECTED"
-                                    )
-                                }
-                            >
-                                ❌ Rejected
-                            </button>
-
-
-                            <button
-                                type="button"
-                                className={
-                                    filter === "CANCELLED"
-                                        ? "active"
-                                        : ""
-                                }
-                                onClick={() =>
-                                    setFilter(
-                                        "CANCELLED"
-                                    )
-                                }
-                            >
-                                🚫 Cancelled
-                            </button>
-
-                        </section>
-
-                    )}
-
-
-                {/* =================================================
-                    LOADING
-                ================================================= */}
-
-                {loading && (
-
-                    <div className="reservation-loading">
-
-                        <div className="loading-icon">
-                            🍽️
-                        </div>
-
-                        <h2>
-                            Loading your reservations...
-                        </h2>
-
-                        <p>
-                            Fetching your latest
-                            table bookings.
-                        </p>
-
-                    </div>
-
-                )}
-
-
-                {/* =================================================
-                    EMPTY
-                ================================================= */}
-
-                {!loading &&
-                    !error &&
-                    reservations.length === 0 && (
-
-                        <div className="reservation-empty-card">
-
-                            <div className="empty-icon">
-                                🍽️
-                            </div>
-
-                            <span className="empty-eyebrow">
-                                YOUR DINING JOURNEY
-                            </span>
-
-                            <h2>
-                                No Reservations Yet
-                            </h2>
-
-                            <p>
-                                You haven't booked a table
-                                with us yet. Choose your
-                                perfect dining experience
-                                and make your first
-                                reservation.
-                            </p>
-
-                            <button
-                                type="button"
-                                className="primary-reservation-btn"
-                                onClick={() =>
-                                    navigate(
-                                        "/reservation"
-                                    )
-                                }
-                            >
-                                Book Your First Table →
-                            </button>
-
-                        </div>
-
-                    )}
-
-
-                {/* =================================================
-                    FILTER EMPTY
-                ================================================= */}
-
-                {!loading &&
-                    reservations.length > 0 &&
-                    filteredReservations.length === 0 && (
-
-                        <div className="reservation-empty-card compact">
-
-                            <div className="empty-icon">
-                                🔎
-                            </div>
-
-                            <h2>
-                                No Reservations Found
-                            </h2>
-
-                            <p>
-                                There are no reservations
-                                under the selected filter.
-                            </p>
-
-                            <button
-                                type="button"
-                                className="secondary-reservation-btn"
-                                onClick={() =>
-                                    setFilter(
-                                        "ALL"
-                                    )
-                                }
-                            >
-                                Show All Reservations
-                            </button>
-
-                        </div>
-
-                    )}
-
-
-                {/* =================================================
-                    RESERVATIONS
-                ================================================= */}
-
-                {!loading &&
-                    filteredReservations.length > 0 && (
-
-                        <section className="reservations-list">
-
-                            {filteredReservations.map(
-                                (
-                                    reservation,
-                                    index
-                                ) => {
-
-                                    const status =
-                                        String(
-                                            reservation.status ||
-                                            "PENDING"
-                                        ).toUpperCase();
-
-
-                                    const statusConfig =
-                                        getStatusConfig(
-                                            status
-                                        );
-
-
-                                    const canCancel =
-                                        [
-                                            "PENDING",
-                                            "CONFIRMED",
-                                        ].includes(
-                                            status
-                                        );
-
-
-                                    const reservationId =
-                                        reservation._id;
-
-
-                                    return (
-
-                                        <article
-                                            className={`reservation-card ${statusConfig.className}`}
-                                            key={
-                                                reservationId ||
-                                                index
-                                            }
-                                        >
-
-
-                                            {/* =====================================
-                                                CARD HEADER
-                                            ===================================== */}
-
-                                            <div className="reservation-card-header">
-
-                                                <div>
-
-                                                    <span className="reservation-number">
-                                                        RESERVATION
-                                                    </span>
-
-                                                    <h2>
-                                                        #
-                                                        {String(
-                                                            reservationId ||
-                                                            ""
-                                                        )
-                                                            .slice(
-                                                                -8
-                                                            )
-                                                            .toUpperCase()}
-                                                    </h2>
-
-                                                    {reservation.createdAt && (
-
-                                                        <small>
-                                                            Requested{" "}
-                                                            {formatCreatedAt(
-                                                                reservation.createdAt
-                                                            )}
-                                                        </small>
-
-                                                    )}
-
-                                                </div>
-
-
-                                                <div
-                                                    className={`reservation-status ${statusConfig.className}`}
-                                                >
-
-                                                    <span>
-                                                        {
-                                                            statusConfig.icon
-                                                        }
-                                                    </span>
-
-                                                    <div>
-
-                                                        <strong>
-                                                            {
-                                                                statusConfig.label
-                                                            }
-                                                        </strong>
-
-                                                        <small>
-                                                            {status}
-                                                        </small>
-
-                                                    </div>
-
-                                                </div>
-
-                                            </div>
-
-
-                                            {/* =====================================
-                                                STATUS MESSAGE
-                                            ===================================== */}
-
-                                            <div className="reservation-status-message">
-
-                                                <span>
-                                                    {
-                                                        statusConfig.icon
-                                                    }
-                                                </span>
-
-                                                <p>
-                                                    {
-                                                        statusConfig.description
-                                                    }
-                                                </p>
-
-                                            </div>
-
-
-                                            {/* =====================================
-                                                PROGRESS
-                                            ===================================== */}
-
-                                            <div className="reservation-progress">
-
-                                                <div
-                                                    className={`progress-step completed`}
-                                                >
-                                                    <span>
-                                                        ✓
-                                                    </span>
-
-                                                    <small>
-                                                        Request Sent
-                                                    </small>
-                                                </div>
-
-
-                                                <div
-                                                    className={
-                                                        status ===
-                                                        "PENDING"
-                                                            ? "progress-line"
-                                                            : "progress-line completed"
-                                                    }
-                                                />
-
-
-                                                <div
-                                                    className={
-                                                        status ===
-                                                        "PENDING"
-                                                            ? "progress-step current"
-                                                            : status ===
-                                                                "CONFIRMED"
-                                                                ? "progress-step completed"
-                                                                : "progress-step"
-                                                    }
-                                                >
-
-                                                    <span>
-                                                        {status ===
-                                                        "CONFIRMED"
-                                                            ? "✓"
-                                                            : "2"}
-                                                    </span>
-
-                                                    <small>
-                                                        Review
-                                                    </small>
-
-                                                </div>
-
-
-                                                <div
-                                                    className={
-                                                        status ===
-                                                        "CONFIRMED"
-                                                            ? "progress-line completed"
-                                                            : "progress-line"
-                                                    }
-                                                />
-
-
-                                                <div
-                                                    className={
-                                                        status ===
-                                                        "CONFIRMED"
-                                                            ? "progress-step completed"
-                                                            : "progress-step"
-                                                    }
-                                                >
-
-                                                    <span>
-                                                        {status ===
-                                                        "CONFIRMED"
-                                                            ? "✓"
-                                                            : "3"}
-                                                    </span>
-
-                                                    <small>
-                                                        Confirmed
-                                                    </small>
-
-                                                </div>
-
-                                            </div>
-
-
-                                            {/* =====================================
-                                                EXPERIENCE
-                                            ===================================== */}
-
-                                            <div className="reservation-experience">
-
-                                                <div className="experience-icon">
-                                                    {reservation.tableType ===
-                                                    "Candle Light Dinner"
-                                                        ? "🕯️"
-                                                        : reservation.tableType ===
-                                                            "Birthday Celebration"
-                                                            ? "🎂"
-                                                            : reservation.tableType ===
-                                                                "Family Table"
-                                                                ? "👨‍👩‍👧‍👦"
-                                                                : reservation.tableType ===
-                                                                    "Premium / Private"
-                                                                    ? "✨"
-                                                                    : "🍽️"}
-                                                </div>
-
-
-                                                <div className="experience-details">
-
-                                                    <span>
-                                                        DINING EXPERIENCE
-                                                    </span>
-
-                                                    <h3>
-                                                        {
-                                                            reservation.tableType ||
-                                                            "Table Reservation"
-                                                        }
-                                                    </h3>
-
-                                                </div>
-
-
-                                                <div className="experience-price">
-
-                                                    <small>
-                                                        TABLE PRICE
-                                                    </small>
-
-                                                    <strong>
-                                                        {formatCurrency(
-                                                            reservation.tablePrice
-                                                        )}
-                                                    </strong>
-
-                                                </div>
-
-                                            </div>
-
-
-                                            {/* =====================================
-                                                DETAILS GRID
-                                            ===================================== */}
-
-                                            <div className="reservation-details-grid">
-
-
-                                                <div className="reservation-detail">
-
-                                                    <span>
-                                                        📅
-                                                    </span>
-
-                                                    <div>
-
-                                                        <small>
-                                                            DATE
-                                                        </small>
-
-                                                        <strong>
-                                                            {formatDate(
-                                                                reservation.date
-                                                            )}
-                                                        </strong>
-
-                                                    </div>
-
-                                                </div>
-
-
-                                                <div className="reservation-detail">
-
-                                                    <span>
-                                                        🕐
-                                                    </span>
-
-                                                    <div>
-
-                                                        <small>
-                                                            TIME
-                                                        </small>
-
-                                                        <strong>
-                                                            {formatTime(
-                                                                reservation.time
-                                                            )}
-                                                        </strong>
-
-                                                    </div>
-
-                                                </div>
-
-
-                                                <div className="reservation-detail">
-
-                                                    <span>
-                                                        👥
-                                                    </span>
-
-                                                    <div>
-
-                                                        <small>
-                                                            GUESTS
-                                                        </small>
-
-                                                        <strong>
-                                                            {
-                                                                reservation.guests
-                                                            }{" "}
-                                                            {Number(
-                                                                reservation.guests
-                                                            ) === 1
-                                                                ? "Guest"
-                                                                : "Guests"}
-                                                        </strong>
-
-                                                    </div>
-
-                                                </div>
-
-
-                                                <div className="reservation-detail">
-
-                                                    <span>
-                                                        🎉
-                                                    </span>
-
-                                                    <div>
-
-                                                        <small>
-                                                            OCCASION
-                                                        </small>
-
-                                                        <strong>
-                                                            {
-                                                                reservation.occasion ||
-                                                                "Casual Dining"
-                                                            }
-                                                        </strong>
-
-                                                    </div>
-
-                                                </div>
-
-                                            </div>
-
-
-                                            {/* =====================================
-                                                CUSTOMER
-                                            ===================================== */}
-
-                                            <div className="reservation-customer">
-
-                                                <div>
-
-                                                    <span>
-                                                        CUSTOMER
-                                                    </span>
-
-                                                    <strong>
-                                                        {
-                                                            reservation.customer?.name ||
-                                                            reservation.name ||
-                                                            user.name
-                                                        }
-                                                    </strong>
-
-                                                </div>
-
-
-                                                <div>
-
-                                                    <span>
-                                                        PHONE
-                                                    </span>
-
-                                                    <strong>
-                                                        {
-                                                            reservation.customer?.phone ||
-                                                            reservation.phone ||
-                                                            "—"
-                                                        }
-                                                    </strong>
-
-                                                </div>
-
-
-                                                <div>
-
-                                                    <span>
-                                                        EMAIL
-                                                    </span>
-
-                                                    <strong>
-                                                        {
-                                                            reservation.customer?.email ||
-                                                            reservation.email ||
-                                                            user.email ||
-                                                            "—"
-                                                        }
-                                                    </strong>
-
-                                                </div>
-
-                                            </div>
-
-
-                                            {/* =====================================
-                                                ADMIN TABLE
-                                            ===================================== */}
-
-                                            {reservation.assignedTable && (
-
-                                                <div className="assigned-table">
-
-                                                    <span>
-                                                        🪑
-                                                    </span>
-
-                                                    <div>
-
-                                                        <small>
-                                                            TABLE ASSIGNED
-                                                        </small>
-
-                                                        <strong>
-                                                            {
-                                                                reservation.assignedTable
-                                                            }
-                                                        </strong>
-
-                                                    </div>
-
-                                                </div>
-
-                                            )}
-
-
-                                            {/* =====================================
-                                                ADMIN NOTE
-                                            ===================================== */}
-
-                                            {reservation.adminNote && (
-
-                                                <div className="admin-note">
-
-                                                    <span>
-                                                        💬
-                                                    </span>
-
-                                                    <div>
-
-                                                        <small>
-                                                            RESTAURANT NOTE
-                                                        </small>
-
-                                                        <p>
-                                                            {
-                                                                reservation.adminNote
-                                                            }
-                                                        </p>
-
-                                                    </div>
-
-                                                </div>
-
-                                            )}
-
-
-                                            {/* =====================================
-                                                SPECIAL MESSAGE
-                                            ===================================== */}
-
-                                            {reservation.message && (
-
-                                                <div className="customer-message">
-
-                                                    <span>
-                                                        📝
-                                                    </span>
-
-                                                    <div>
-
-                                                        <small>
-                                                            YOUR REQUEST
-                                                        </small>
-
-                                                        <p>
-                                                            {
-                                                                reservation.message
-                                                            }
-                                                        </p>
-
-                                                    </div>
-
-                                                </div>
-
-                                            )}
-
-
-                                            {/* =====================================
-                                                ACTIONS
-                                            ===================================== */}
-
-                                            <div className="reservation-card-actions">
-
-                                                <button
-                                                    type="button"
-                                                    className="view-menu-btn"
-                                                    onClick={() =>
-                                                        navigate(
-                                                            "/menu"
-                                                        )
-                                                    }
-                                                >
-                                                    🍽️ Browse Menu
-                                                </button>
-
-
-                                                {canCancel && (
-
-                                                    <button
-                                                        type="button"
-                                                        className="cancel-reservation-btn"
-                                                        onClick={() =>
-                                                            handleCancel(
-                                                                reservationId
-                                                            )
-                                                        }
-                                                        disabled={
-                                                            cancellingId ===
-                                                            reservationId
-                                                        }
-                                                    >
-                                                        {cancellingId ===
-                                                        reservationId
-                                                            ? "⏳ Cancelling..."
-                                                            : "Cancel Reservation"}
-                                                    </button>
-
-                                                )}
-
-                                            </div>
-
-                                        </article>
-
-                                    );
-
-                                }
+                          <strong>
+                            {formatDate(
+                              reservation.date
                             )}
+                          </strong>
 
-                        </section>
+                        </div>
 
-                    )}
+                        <div className="reservation-detail">
 
+                          <span>
+                            TIME
+                          </span>
 
-                {/* =================================================
-                    FOOTER NOTE
-                ================================================= */}
+                          <strong>
+                            {formatTime(
+                              reservation.time
+                            )}
+                          </strong>
 
-                {!loading &&
-                    reservations.length > 0 && (
+                        </div>
 
-                        <div className="reservation-bottom-note">
+                        <div className="reservation-detail">
+
+                          <span>
+                            GUESTS
+                          </span>
+
+                          <strong>
+                            {reservation.guests}
+                          </strong>
+
+                        </div>
+
+                        <div className="reservation-detail">
+
+                          <span>
+                            TABLE FEE
+                          </span>
+
+                          <strong>
+                            {formatCurrency(
+                              reservation.tablePrice
+                            )}
+                          </strong>
+
+                        </div>
+
+                      </div>
+
+                      {/* ==============================
+                          EXTRA DETAILS
+                      ============================== */}
+
+                      <div className="reservation-extra-details">
+
+                        <div>
+
+                          <span>
+                            Occasion
+                          </span>
+
+                          <strong>
+                            {reservation.occasion ||
+                              "Dining"}
+                          </strong>
+
+                        </div>
+
+                        <div>
+
+                          <span>
+                            Guest Name
+                          </span>
+
+                          <strong>
+                            {reservation.customer
+                              ?.name ||
+                              reservation.name ||
+                              user?.name ||
+                              "—"}
+                          </strong>
+
+                        </div>
+
+                        {reservation.assignedTable && (
+                          <div className="assigned-table-detail">
 
                             <span>
-                                🍴
+                              Assigned Table
                             </span>
 
-                            <p>
-                                Your table reservation is
-                                separate from your food order.
-                                Any food bill will be calculated
-                                independently.
-                            </p>
+                            <strong>
+                              Table{" "}
+                              {reservation.assignedTable}
+                            </strong>
+
+                          </div>
+                        )}
+
+                      </div>
+
+                      {/* ==============================
+                          ADMIN NOTE
+                      ============================== */}
+
+                      {reservation.adminNote && (
+                        <div className="reservation-admin-note">
+
+                          <span>
+                            RESTAURANT NOTE
+                          </span>
+
+                          <p>
+                            {reservation.adminNote}
+                          </p>
 
                         </div>
+                      )}
 
+                      {/* ==============================
+                          SPECIAL REQUEST
+                      ============================== */}
+
+                      {reservation.message && (
+                        <div className="reservation-special-request">
+
+                          <span>
+                            SPECIAL REQUEST
+                          </span>
+
+                          <p>
+                            {reservation.message}
+                          </p>
+
+                        </div>
+                      )}
+
+                    </div>
+
+                    {/* ==============================
+                        CARD FOOTER
+                    ============================== */}
+
+                    <div className="reservation-card-footer">
+
+                      <div className="reservation-actions">
+
+                        {upcoming &&
+                          reservation.status !==
+                            "CANCELLED" && (
+                            <button
+                              type="button"
+                              className="cancel-reservation-btn"
+                              onClick={() =>
+                                openCancelModal(
+                                  reservation
+                                )
+                              }
+                            >
+                              Cancel
+                            </button>
+                          )}
+
+                        <button
+                          type="button"
+                          className="view-reservation-btn"
+                          onClick={() =>
+                            setSelectedReservation(
+                              reservation
+                            )
+                          }
+                        >
+                          View Details
+                          <span>→</span>
+                        </button>
+
+                      </div>
+
+                    </div>
+
+                    {/* ==============================
+                        STATUS MESSAGE
+                    ============================== */}
+
+                    <div className="reservation-status-message">
+
+                      <span>
+                        {statusConfig.icon}
+                      </span>
+
+                      <p>
+                        {statusConfig.description}
+                      </p>
+
+                      {upcoming && (
+                        <span className="upcoming-badge">
+                          Upcoming
+                        </span>
+                      )}
+
+                    </div>
+
+                  </article>
+                );
+              }
+            )}
+
+          </section>
+        )}
+
+        {/* =================================================
+            BOTTOM CTA
+        ================================================= */}
+
+        <section className="reservation-bottom-cta">
+
+          <div>
+
+            <span>
+              MAKE IT MEMORABLE
+            </span>
+
+            <h2>
+              Planning another
+              special evening?
+            </h2>
+
+            <p>
+              Reserve your favourite table and
+              let us take care of the experience.
+            </p>
+
+          </div>
+
+          <button
+            type="button"
+            onClick={() =>
+              navigate("/reservation")
+            }
+          >
+            Reserve a Table
+            <span>→</span>
+          </button>
+
+        </section>
+
+      </div>
+
+      {/* =====================================================
+          DETAILS MODAL
+      ===================================================== */}
+
+      {selectedReservation &&
+        !showCancelModal && (
+
+          <div
+            className="reservation-modal-backdrop"
+            onClick={() =>
+              setSelectedReservation(null)
+            }
+          >
+
+            <div
+              className="reservation-details-modal"
+              onClick={(event) =>
+                event.stopPropagation()
+              }
+            >
+
+              <button
+                type="button"
+                className="modal-close-btn"
+                onClick={() =>
+                  setSelectedReservation(null)
+                }
+              >
+                ×
+              </button>
+
+              <div className="modal-icon">
+                {getTableIcon(
+                  selectedReservation.tableType
+                )}
+              </div>
+
+              <span className="modal-eyebrow">
+                RESERVATION DETAILS
+              </span>
+
+              <h2>
+                {selectedReservation.tableType ||
+                  "Table Reservation"}
+              </h2>
+
+              <div
+                className={`modal-status ${
+                  getStatusConfig(
+                    selectedReservation.status
+                  ).className
+                }`}
+              >
+                {
+                  getStatusConfig(
+                    selectedReservation.status
+                  ).icon
+                }
+
+                {" "}
+
+                {
+                  getStatusConfig(
+                    selectedReservation.status
+                  ).label
+                }
+              </div>
+
+              <div className="modal-details-grid">
+
+                <div>
+                  <span>
+                    Guest
+                  </span>
+
+                  <strong>
+                    {selectedReservation.customer
+                      ?.name ||
+                      selectedReservation.name ||
+                      user?.name ||
+                      "—"}
+                  </strong>
+                </div>
+
+                <div>
+                  <span>
+                    Phone
+                  </span>
+
+                  <strong>
+                    {selectedReservation.customer
+                      ?.phone ||
+                      selectedReservation.phone ||
+                      "—"}
+                  </strong>
+                </div>
+
+                <div>
+                  <span>
+                    Date
+                  </span>
+
+                  <strong>
+                    {formatDate(
+                      selectedReservation.date
                     )}
+                  </strong>
+                </div>
+
+                <div>
+                  <span>
+                    Time
+                  </span>
+
+                  <strong>
+                    {formatTime(
+                      selectedReservation.time
+                    )}
+                  </strong>
+                </div>
+
+                <div>
+                  <span>
+                    Guests
+                  </span>
+
+                  <strong>
+                    {selectedReservation.guests}
+                  </strong>
+                </div>
+
+                <div>
+                  <span>
+                    Occasion
+                  </span>
+
+                  <strong>
+                    {selectedReservation.occasion ||
+                      "Dining"}
+                  </strong>
+                </div>
+
+                <div>
+                  <span>
+                    Table Fee
+                  </span>
+
+                  <strong>
+                    {formatCurrency(
+                      selectedReservation.tablePrice
+                    )}
+                  </strong>
+                </div>
+
+                <div>
+                  <span>
+                    Assigned Table
+                  </span>
+
+                  <strong>
+                    {selectedReservation.assignedTable
+                      ? `Table ${selectedReservation.assignedTable}`
+                      : "Pending"}
+                  </strong>
+                </div>
+
+              </div>
+
+              {selectedReservation.message && (
+                <div className="modal-message">
+
+                  <span>
+                    SPECIAL REQUEST
+                  </span>
+
+                  <p>
+                    {selectedReservation.message}
+                  </p>
+
+                </div>
+              )}
+
+              {selectedReservation.adminNote && (
+                <div className="modal-message admin">
+
+                  <span>
+                    NOTE FROM RESTAURANT
+                  </span>
+
+                  <p>
+                    {selectedReservation.adminNote}
+                  </p>
+
+                </div>
+              )}
+
+              <button
+                type="button"
+                className="modal-primary-btn"
+                onClick={() =>
+                  setSelectedReservation(null)
+                }
+              >
+                Done
+              </button>
 
             </div>
 
-        </main>
+          </div>
+        )}
 
-    );
+      {/* =====================================================
+          CANCEL MODAL
+      ===================================================== */}
 
+      {showCancelModal &&
+        selectedReservation && (
+
+          <div
+            className="reservation-modal-backdrop"
+            onClick={closeCancelModal}
+          >
+
+            <div
+              className="cancel-modal"
+              onClick={(event) =>
+                event.stopPropagation()
+              }
+            >
+
+              <div className="cancel-modal-icon">
+                !
+              </div>
+
+              <span className="modal-eyebrow">
+                CANCEL RESERVATION
+              </span>
+
+              <h2>
+                Are you sure?
+              </h2>
+
+              <p>
+                You are about to cancel your reservation
+                for{" "}
+                <strong>
+                  {formatDate(
+                    selectedReservation.date
+                  )}
+                </strong>{" "}
+                at{" "}
+                <strong>
+                  {formatTime(
+                    selectedReservation.time
+                  )}
+                </strong>
+                .
+              </p>
+
+              <div className="cancel-modal-details">
+
+                <span>
+                  {getTableIcon(
+                    selectedReservation.tableType
+                  )}
+                </span>
+
+                <div>
+
+                  <strong>
+                    {selectedReservation.tableType}
+                  </strong>
+
+                  <small>
+                    {selectedReservation.guests} guests
+                  </small>
+
+                </div>
+
+              </div>
+
+              <div className="cancel-modal-actions">
+
+                <button
+                  type="button"
+                  className="keep-reservation-btn"
+                  onClick={
+                    closeCancelModal
+                  }
+                  disabled={
+                    cancelLoading
+                  }
+                >
+                  Keep Reservation
+                </button>
+
+                <button
+                  type="button"
+                  className="confirm-cancel-btn"
+                  onClick={
+                    handleCancelReservation
+                  }
+                  disabled={
+                    cancelLoading
+                  }
+                >
+
+                  {cancelLoading ? (
+                    <>
+                      <span className="mini-spinner" />
+                      Cancelling...
+                    </>
+                  ) : (
+                    "Yes, Cancel"
+                  )}
+
+                </button>
+
+              </div>
+
+            </div>
+
+          </div>
+        )}
+
+    </main>
+  );
 }
+
+export default MyReservations;

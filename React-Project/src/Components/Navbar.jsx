@@ -1,90 +1,185 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
+
 import "../styles/navbar.css";
 
+
 export default function Navbar() {
+
     const navigate = useNavigate();
 
     const { totalItems } = useCart();
-    const { user, logout } = useAuth();
+
+    const {
+        user,
+        logout,
+    } = useAuth();
+
 
     const [menuOpen, setMenuOpen] = useState(false);
+
     const [scrolled, setScrolled] = useState(false);
 
 
-    // =========================
-    // SCROLL EFFECT
-    // =========================
+    /* =====================================================
+       ADMIN CHECK
+       ===================================================== */
+
+    const savedUser = (() => {
+
+        try {
+
+            const stored =
+                localStorage.getItem("user");
+
+            return stored
+                ? JSON.parse(stored)
+                : null;
+
+        } catch {
+
+            return null;
+
+        }
+
+    })();
+
+
+    const isAdmin =
+        user?.role === "admin" ||
+        user?.isAdmin === true ||
+        savedUser?.role === "admin" ||
+        savedUser?.isAdmin === true;
+
+
+    /* =====================================================
+       SCROLL
+       ===================================================== */
 
     useEffect(() => {
+
         const handleScroll = () => {
-            setScrolled(window.scrollY > 40);
+
+            setScrolled(
+                window.scrollY > 40
+            );
+
         };
 
-        window.addEventListener("scroll", handleScroll);
+
+        window.addEventListener(
+            "scroll",
+            handleScroll
+        );
+
 
         return () => {
-            window.removeEventListener("scroll", handleScroll);
+
+            window.removeEventListener(
+                "scroll",
+                handleScroll
+            );
+
         };
+
     }, []);
 
 
-    // =========================
-    // CLOSE MOBILE MENU
-    // =========================
+    /* =====================================================
+       CLOSE MENU
+       ===================================================== */
 
     const closeMenu = () => {
+
         setMenuOpen(false);
+
     };
 
 
-    // =========================
-    // LOGO
-    // =========================
+    /* =====================================================
+       LOGO
+       ===================================================== */
 
     const handleLogoClick = () => {
+
         navigate("/");
+
         closeMenu();
+
     };
 
 
-    // =========================
-    // CART
-    // =========================
+    /* =====================================================
+       CART
+       ===================================================== */
 
     const handleCartClick = () => {
+
         navigate("/cart");
+
         closeMenu();
+
     };
 
 
-    // =========================
-    // LOGOUT
-    // =========================
+    /* =====================================================
+       LOGOUT
+       ===================================================== */
 
     const handleLogout = () => {
+
         logout();
 
         closeMenu();
 
-        navigate("/");
+        navigate("/login");
+
+    };
+
+
+    /* =====================================================
+       ADMIN DASHBOARD
+       ===================================================== */
+
+    const openAdminDashboard = () => {
+
+        navigate("/admin");
+
+        closeMenu();
+
+    };
+
+
+    /* =====================================================
+       ADMIN RESERVATIONS
+       ===================================================== */
+
+    const openAdminReservations = () => {
+
+        navigate("/admin/reservations");
+
+        closeMenu();
+
     };
 
 
     return (
+
         <nav
-            className={`navbar ${
-                menuOpen ? "menu-open" : ""
-            } ${
-                scrolled ? "navbar-scrolled" : ""
-            }`}
+            className={`
+                navbar
+                ${menuOpen ? "menu-open" : ""}
+                ${scrolled ? "navbar-scrolled" : ""}
+            `}
         >
 
-            {/* =========================
-                LOGO
-            ========================= */}
+
+            {/* =================================================
+               LOGO
+               ================================================= */}
 
             <div
                 className="logo"
@@ -92,16 +187,23 @@ export default function Navbar() {
                 role="button"
                 tabIndex={0}
                 onKeyDown={(event) => {
+
                     if (event.key === "Enter") {
+
                         handleLogoClick();
+
                     }
+
                 }}
             >
+
                 <span className="logo-icon">
                     ✦
                 </span>
 
+
                 <div className="logo-text">
+
                     <strong>
                         Swaad & Spice
                     </strong>
@@ -109,206 +211,297 @@ export default function Navbar() {
                     <small>
                         HOUSE OF INDIAN FLAVOURS
                     </small>
+
                 </div>
+
             </div>
 
 
-            {/* =========================
-                DESKTOP NAVIGATION
-            ========================= */}
+            {/* =================================================
+               DESKTOP NAVIGATION
+               ================================================= */}
 
             <ul className="nav-links">
 
                 <li>
+
                     <NavLink
                         to="/"
                         onClick={closeMenu}
                     >
                         Home
                     </NavLink>
+
                 </li>
 
+
                 <li>
+
                     <NavLink
                         to="/menu"
                         onClick={closeMenu}
                     >
                         Menu
                     </NavLink>
+
                 </li>
 
+
                 <li>
+
                     <NavLink
                         to="/about"
                         onClick={closeMenu}
                     >
                         About
                     </NavLink>
+
                 </li>
 
+
                 <li>
+
                     <NavLink
                         to="/contact"
                         onClick={closeMenu}
                     >
                         Contact
                     </NavLink>
+
                 </li>
 
+
                 <li>
+
                     <NavLink
                         to="/reservation"
                         onClick={closeMenu}
                     >
                         Book a Table
                     </NavLink>
+
                 </li>
 
             </ul>
 
 
-            {/* =========================
-                RIGHT ACTIONS
-            ========================= */}
+            {/* =================================================
+               RIGHT ACTIONS
+               ================================================= */}
 
             <div className="navbar-actions">
 
-                {/* =========================
-                    NOT LOGGED IN
-                ========================= */}
+
+                {/* =================================================
+                   NOT LOGGED IN
+                   ================================================= */}
 
                 {!user && (
+
                     <button
                         className="login-btn"
                         type="button"
                         onClick={() => {
+
                             navigate("/login");
+
                             closeMenu();
+
                         }}
                     >
                         Login
                     </button>
+
                 )}
 
 
-                {/* =========================
-                    LOGGED IN
-                ========================= */}
+                {/* =================================================
+                   LOGGED IN
+                   ================================================= */}
 
                 {user && (
+
                     <div className="user-section">
+
+
+                        {/* USER */}
 
                         <span className="user-name">
 
                             <span className="user-avatar">
+
                                 {user.name
                                     ?.charAt(0)
                                     .toUpperCase()}
+
                             </span>
 
+
                             <span>
+
                                 Hi, {user.name}
+
                             </span>
 
                         </span>
 
 
-                        {/* MY ORDERS */}
+                        {/* =================================================
+                           MY ORDERS
+                           ================================================= */}
 
                         <button
                             className="my-orders-btn"
                             type="button"
                             onClick={() => {
-                                navigate("/my-orders");
+
+                                navigate(
+                                    "/my-orders"
+                                );
+
                                 closeMenu();
+
                             }}
                         >
+
                             My Orders
+
                         </button>
 
 
-                        {/* ADMIN */}
+                        {/* =================================================
+                           ADMIN DASHBOARD
+                           ================================================= */}
 
-                        {user.role === "admin" && (
+                        {isAdmin && (
+
                             <button
                                 className="admin-btn"
                                 type="button"
-                                onClick={() => {
-                                    navigate("/admin");
-                                    closeMenu();
-                                }}
+                                onClick={
+                                    openAdminDashboard
+                                }
                             >
-                                Admin
+
+                                📊 Admin Panel
+
                             </button>
+
                         )}
 
 
-                        {/* LOGOUT */}
+                        {/* =================================================
+                           ADMIN RESERVATIONS
+                           ================================================= */}
+
+                        {isAdmin && (
+
+                            <button
+                                className="admin-reservation-btn"
+                                type="button"
+                                onClick={
+                                    openAdminReservations
+                                }
+                            >
+
+                                📅 Reservations
+
+                            </button>
+
+                        )}
+
+
+                        {/* =================================================
+                           LOGOUT
+                           ================================================= */}
 
                         <button
                             className="logout-btn"
                             type="button"
-                            onClick={handleLogout}
+                            onClick={
+                                handleLogout
+                            }
                         >
+
                             Logout
+
                         </button>
 
                     </div>
+
                 )}
 
 
-                {/* =========================
-                    CART
-                ========================= */}
+                {/* =================================================
+                   CART
+                   ================================================= */}
 
                 <button
                     className="order-btn"
                     type="button"
-                    onClick={handleCartClick}
+                    onClick={
+                        handleCartClick
+                    }
                     aria-label="Open shopping cart"
                 >
+
                     <span className="cart-icon">
                         🛒
                     </span>
+
 
                     <span className="cart-text">
                         Cart
                     </span>
 
+
                     {totalItems > 0 && (
+
                         <span className="cart-count">
+
                             {totalItems}
+
                         </span>
+
                     )}
+
                 </button>
 
             </div>
 
 
-            {/* =========================
-                MOBILE MENU BUTTON
-            ========================= */}
+            {/* =================================================
+               MOBILE TOGGLE
+               ================================================= */}
 
             <button
                 className="menu-toggle"
                 type="button"
                 onClick={() => {
-                    setMenuOpen((previous) => !previous);
+
+                    setMenuOpen(
+                        previous =>
+                            !previous
+                    );
+
                 }}
                 aria-label="Toggle navigation menu"
                 aria-expanded={menuOpen}
             >
+
                 <span></span>
                 <span></span>
                 <span></span>
+
             </button>
 
 
-            {/* =========================
-                MOBILE MENU
-            ========================= */}
+            {/* =================================================
+               MOBILE MENU
+               ================================================= */}
 
             <div className="mobile-menu">
+
 
                 <NavLink
                     to="/"
@@ -317,12 +510,14 @@ export default function Navbar() {
                     Home
                 </NavLink>
 
+
                 <NavLink
                     to="/menu"
                     onClick={closeMenu}
                 >
                     Menu
                 </NavLink>
+
 
                 <NavLink
                     to="/about"
@@ -331,12 +526,14 @@ export default function Navbar() {
                     About
                 </NavLink>
 
+
                 <NavLink
                     to="/contact"
                     onClick={closeMenu}
                 >
                     Contact
                 </NavLink>
+
 
                 <NavLink
                     to="/reservation"
@@ -346,79 +543,150 @@ export default function Navbar() {
                 </NavLink>
 
 
-                {/* MOBILE LOGIN */}
+                {/* =================================================
+                   MOBILE LOGIN
+                   ================================================= */}
 
                 {!user && (
+
                     <button
                         className="mobile-login"
                         type="button"
                         onClick={() => {
+
                             navigate("/login");
+
                             closeMenu();
+
                         }}
                     >
+
                         Login
+
                     </button>
+
                 )}
 
 
-                {/* MOBILE USER OPTIONS */}
+                {/* =================================================
+                   MOBILE USER
+                   ================================================= */}
 
                 {user && (
+
                     <>
+
+
+                        {/* MY ORDERS */}
+
                         <button
                             type="button"
                             onClick={() => {
-                                navigate("/my-orders");
+
+                                navigate(
+                                    "/my-orders"
+                                );
+
                                 closeMenu();
+
                             }}
                         >
-                            My Orders
+
+                            📦 My Orders
+
                         </button>
 
-                        {user.role === "admin" && (
+
+                        {/* ADMIN */}
+
+                        {isAdmin && (
+
                             <button
+                                className="mobile-admin-btn"
                                 type="button"
-                                onClick={() => {
-                                    navigate("/admin");
-                                    closeMenu();
-                                }}
+                                onClick={
+                                    openAdminDashboard
+                                }
                             >
-                                Admin Dashboard
+
+                                📊 Admin Dashboard
+
                             </button>
+
                         )}
+
+
+                        {/* RESERVATIONS */}
+
+                        {isAdmin && (
+
+                            <button
+                                className="mobile-admin-btn"
+                                type="button"
+                                onClick={
+                                    openAdminReservations
+                                }
+                            >
+
+                                📅 Manage Reservations
+
+                            </button>
+
+                        )}
+
+
+                        {/* LOGOUT */}
 
                         <button
                             className="mobile-logout"
                             type="button"
-                            onClick={handleLogout}
+                            onClick={
+                                handleLogout
+                            }
                         >
+
                             Logout
+
                         </button>
+
                     </>
+
                 )}
 
 
-                {/* MOBILE CART */}
+                {/* =================================================
+                   MOBILE CART
+                   ================================================= */}
 
                 <button
                     className="mobile-cart"
                     type="button"
-                    onClick={handleCartClick}
+                    onClick={
+                        handleCartClick
+                    }
                 >
+
                     <span>
-                        Cart
+                        🛒 Cart
                     </span>
 
+
                     {totalItems > 0 && (
+
                         <span className="cart-count">
+
                             {totalItems}
+
                         </span>
+
                     )}
+
                 </button>
 
             </div>
 
         </nav>
+
     );
+
 }

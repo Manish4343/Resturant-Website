@@ -1,4 +1,4 @@
-import {
+import React, {
     useEffect,
     useMemo,
     useState,
@@ -14,6 +14,8 @@ import {
     useAuth,
 } from "../context/AuthContext";
 
+import "../styles/reservation.css";
+
 
 // =====================================================
 // API
@@ -26,6 +28,8 @@ const API_URL =
 
 // =====================================================
 // TABLE / DINING EXPERIENCES
+// IMPORTANT:
+// tableType values MUST exactly match backend
 // =====================================================
 
 const TABLE_OPTIONS = [
@@ -189,7 +193,6 @@ export default function Reservation() {
             message: "",
         });
 
-
     const [submitting, setSubmitting] =
         useState(false);
 
@@ -249,6 +252,7 @@ export default function Reservation() {
                     previous.guests
                 ) || table.minGuests;
 
+
             if (
                 guests <
                 table.minGuests
@@ -256,6 +260,7 @@ export default function Reservation() {
                 guests =
                     table.minGuests;
             }
+
 
             if (
                 guests >
@@ -265,10 +270,12 @@ export default function Reservation() {
                     table.maxGuests;
             }
 
+
             return {
                 ...previous,
                 guests,
             };
+
         });
 
     };
@@ -288,6 +295,43 @@ export default function Reservation() {
         } = event.target;
 
 
+        // ---------------------------------------------
+        // PHONE
+        // ---------------------------------------------
+
+        if (
+            name === "phone"
+        ) {
+
+            const numericValue =
+                value.replace(
+                    /\D/g,
+                    ""
+                ).slice(
+                    0,
+                    10
+                );
+
+
+            setFormData(
+                (previous) => ({
+                    ...previous,
+                    phone:
+                        numericValue,
+                })
+            );
+
+
+            setError("");
+
+            return;
+        }
+
+
+        // ---------------------------------------------
+        // GUESTS
+        // ---------------------------------------------
+
         if (
             name === "guests"
         ) {
@@ -296,7 +340,11 @@ export default function Reservation() {
                 value.replace(
                     /\D/g,
                     ""
+                ).slice(
+                    0,
+                    2
                 );
+
 
             setFormData(
                 (previous) => ({
@@ -306,11 +354,16 @@ export default function Reservation() {
                 })
             );
 
+
             setError("");
 
             return;
         }
 
+
+        // ---------------------------------------------
+        // OTHER FIELDS
+        // ---------------------------------------------
 
         setFormData(
             (previous) => ({
@@ -318,6 +371,7 @@ export default function Reservation() {
                 [name]: value,
             })
         );
+
 
         setError("");
 
@@ -335,6 +389,13 @@ export default function Reservation() {
                 return "Select an experience first";
             }
 
+            if (
+                selectedTable.minGuests ===
+                selectedTable.maxGuests
+            ) {
+                return `${selectedTable.minGuests} guest`;
+            }
+
             return `${selectedTable.minGuests}–${selectedTable.maxGuests} guests`;
 
         }, [selectedTable]);
@@ -346,6 +407,10 @@ export default function Reservation() {
 
     const validateForm = () => {
 
+        // ---------------------------------------------
+        // LOGIN
+        // ---------------------------------------------
+
         if (!user) {
 
             setError(
@@ -356,6 +421,10 @@ export default function Reservation() {
         }
 
 
+        // ---------------------------------------------
+        // TABLE
+        // ---------------------------------------------
+
         if (!selectedTable) {
 
             setError(
@@ -365,6 +434,10 @@ export default function Reservation() {
             return false;
         }
 
+
+        // ---------------------------------------------
+        // NAME
+        // ---------------------------------------------
 
         if (
             !formData.name.trim()
@@ -379,6 +452,22 @@ export default function Reservation() {
 
 
         if (
+            formData.name.trim().length < 2
+        ) {
+
+            setError(
+                "Please enter a valid name."
+            );
+
+            return false;
+        }
+
+
+        // ---------------------------------------------
+        // PHONE
+        // ---------------------------------------------
+
+        if (
             !/^[0-9]{10}$/.test(
                 formData.phone.trim()
             )
@@ -391,6 +480,44 @@ export default function Reservation() {
             return false;
         }
 
+
+        // ---------------------------------------------
+        // EMAIL
+        // ---------------------------------------------
+
+        if (
+            !formData.email.trim()
+        ) {
+
+            setError(
+                "Please enter your email address."
+            );
+
+            return false;
+        }
+
+
+        const emailRegex =
+            /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+
+        if (
+            !emailRegex.test(
+                formData.email.trim()
+            )
+        ) {
+
+            setError(
+                "Please enter a valid email address."
+            );
+
+            return false;
+        }
+
+
+        // ---------------------------------------------
+        // DATE
+        // ---------------------------------------------
 
         if (
             !formData.date
@@ -421,6 +548,10 @@ export default function Reservation() {
         }
 
 
+        // ---------------------------------------------
+        // TIME
+        // ---------------------------------------------
+
         if (
             !formData.time
         ) {
@@ -433,42 +564,9 @@ export default function Reservation() {
         }
 
 
-        const guests =
-            Number(
-                formData.guests
-            );
-
-
-        if (
-            !Number.isInteger(
-                guests
-            )
-        ) {
-
-            setError(
-                "Please enter a valid number of guests."
-            );
-
-            return false;
-        }
-
-
-        if (
-            guests <
-            selectedTable.minGuests ||
-            guests >
-            selectedTable.maxGuests
-        ) {
-
-            setError(
-                `This experience allows ${selectedTable.minGuests}–${selectedTable.maxGuests} guests.`
-            );
-
-            return false;
-        }
-
-
-        // Same-day time validation
+        // ---------------------------------------------
+        // SAME DAY TIME
+        // ---------------------------------------------
 
         if (
             formData.date ===
@@ -477,6 +575,7 @@ export default function Reservation() {
 
             const currentTime =
                 getCurrentTime();
+
 
             if (
                 formData.time <=
@@ -489,6 +588,51 @@ export default function Reservation() {
 
                 return false;
             }
+
+        }
+
+
+        // ---------------------------------------------
+        // GUESTS
+        // ---------------------------------------------
+
+        const guests =
+            Number(
+                formData.guests
+            );
+
+
+        if (
+            !Number.isInteger(
+                guests
+            ) ||
+            guests <= 0
+        ) {
+
+            setError(
+                "Please enter a valid number of guests."
+            );
+
+            return false;
+        }
+
+
+        // ---------------------------------------------
+        // TABLE CAPACITY
+        // ---------------------------------------------
+
+        if (
+            guests <
+            selectedTable.minGuests ||
+            guests >
+            selectedTable.maxGuests
+        ) {
+
+            setError(
+                `${selectedTable.type} is suitable for ${selectedTable.minGuests}–${selectedTable.maxGuests} guests.`
+            );
+
+            return false;
         }
 
 
@@ -514,12 +658,28 @@ export default function Reservation() {
         setShowSuccess(false);
 
 
-        if (
-            !validateForm()
-        ) {
+        // ---------------------------------------------
+        // VALIDATE
+        // ---------------------------------------------
+
+        const valid =
+            validateForm();
+
+
+        if (!valid) {
+
+            window.scrollTo({
+                top: 0,
+                behavior: "smooth",
+            });
+
             return;
         }
 
+
+        // ---------------------------------------------
+        // TOKEN
+        // ---------------------------------------------
 
         const savedToken =
             token ||
@@ -534,7 +694,15 @@ export default function Reservation() {
                 "Your login session has expired. Please login again."
             );
 
-            navigate("/login");
+            navigate(
+                "/login",
+                {
+                    state: {
+                        from:
+                            "/reservation",
+                    },
+                }
+            );
 
             return;
         }
@@ -546,12 +714,21 @@ export default function Reservation() {
 
 
             // =================================================
-            // RESERVATION PAYLOAD
+            // IMPORTANT PAYLOAD
             // =================================================
             //
-            // We send both the customer object and top-level
-            // customer fields for compatibility with the
-            // existing reservation backend.
+            // Backend reservationController.js expects:
+            //
+            // req.body.name
+            // req.body.phone
+            // req.body.email
+            // req.body.tableType
+            // req.body.date
+            // req.body.time
+            // req.body.guests
+            //
+            // So DO NOT put name/phone/email only inside
+            // customer object.
             //
             // =================================================
 
@@ -564,36 +741,12 @@ export default function Reservation() {
                     formData.phone.trim(),
 
                 email:
-                    formData.email.trim(),
-
-                customer: {
-
-                    name:
-                        formData.name.trim(),
-
-                    phone:
-                        formData.phone.trim(),
-
-                    email:
-                        formData.email.trim(),
-
-                },
+                    formData.email
+                        .trim()
+                        .toLowerCase(),
 
                 tableType:
                     selectedTable.type,
-
-                tablePrice:
-                    selectedTable.price,
-
-                capacity: {
-
-                    min:
-                        selectedTable.minGuests,
-
-                    max:
-                        selectedTable.maxGuests,
-
-                },
 
                 date:
                     formData.date,
@@ -616,10 +769,31 @@ export default function Reservation() {
 
 
             console.log(
-                "RESERVATION PAYLOAD =>",
+                "===================================="
+            );
+
+            console.log(
+                "SWAAAD & SPICE RESERVATION"
+            );
+
+            console.log(
+                "API:",
+                `${API_URL}/reservations`
+            );
+
+            console.log(
+                "PAYLOAD:",
                 payload
             );
 
+            console.log(
+                "===================================="
+            );
+
+
+            // =================================================
+            // API REQUEST
+            // =================================================
 
             const response =
                 await axios.post(
@@ -639,16 +813,23 @@ export default function Reservation() {
 
                         },
 
+                        timeout:
+                            15000,
+
                     }
 
                 );
 
 
             console.log(
-                "RESERVATION RESPONSE =>",
+                "RESERVATION RESPONSE:",
                 response.data
             );
 
+
+            // =================================================
+            // CHECK RESPONSE
+            // =================================================
 
             if (
                 !response.data?.success
@@ -671,18 +852,24 @@ export default function Reservation() {
                 "Reservation request submitted successfully."
             );
 
-            setShowSuccess(true);
+
+            setShowSuccess(
+                true
+            );
 
 
-            // Keep selected table and basic user details,
-            // but reset booking-specific fields.
+            // Keep customer details and selected table.
+            // Reset booking-specific fields.
 
             setFormData((previous) => ({
+
                 ...previous,
 
-                date: "",
+                date:
+                    "",
 
-                time: "",
+                time:
+                    "",
 
                 guests:
                     selectedTable.minGuests,
@@ -690,11 +877,11 @@ export default function Reservation() {
                 occasion:
                     "Casual Dining",
 
-                message: "",
+                message:
+                    "",
+
             }));
 
-
-            // Scroll to top of success card
 
             window.scrollTo({
                 top: 0,
@@ -705,19 +892,39 @@ export default function Reservation() {
         } catch (err) {
 
             console.error(
-                "RESERVATION ERROR =>",
+                "===================================="
+            );
+
+            console.error(
+                "RESERVATION ERROR"
+            );
+
+            console.error(
                 err
             );
 
             console.error(
-                "SERVER RESPONSE =>",
+                "STATUS:",
+                err?.response?.status
+            );
+
+            console.error(
+                "SERVER RESPONSE:",
                 err?.response?.data
+            );
+
+            console.error(
+                "===================================="
             );
 
 
             const status =
                 err?.response?.status;
 
+
+            // ---------------------------------------------
+            // UNAUTHORIZED
+            // ---------------------------------------------
 
             if (
                 status === 401
@@ -731,27 +938,78 @@ export default function Reservation() {
                     "user"
                 );
 
+
                 setError(
                     "Your login session has expired. Please login again."
                 );
 
+
                 setTimeout(() => {
-                    navigate("/login");
-                }, 1200);
+
+                    navigate(
+                        "/login",
+                        {
+                            state: {
+                                from:
+                                    "/reservation",
+                            },
+                        }
+                    );
+
+                }, 1000);
+
 
                 return;
             }
 
 
+            // ---------------------------------------------
+            // SERVER ERROR
+            // ---------------------------------------------
+
+            let message =
+                "Unable to submit reservation. Please try again.";
+
+
+            if (
+                err?.response?.data?.message
+            ) {
+
+                message =
+                    err.response.data.message;
+
+            } else if (
+                err?.response?.data?.error
+            ) {
+
+                message =
+                    err.response.data.error;
+
+            } else if (
+                err?.message
+            ) {
+
+                message =
+                    err.message;
+
+            }
+
+
             setError(
-                err?.response?.data?.message ||
-                err?.message ||
-                "Unable to submit reservation. Please try again."
+                message
             );
+
+
+            window.scrollTo({
+                top: 0,
+                behavior: "smooth",
+            });
 
         } finally {
 
-            setSubmitting(false);
+            setSubmitting(
+                false
+            );
 
         }
 
@@ -759,41 +1017,56 @@ export default function Reservation() {
 
 
     // =================================================
-    // RESET SUCCESS
+    // NEW RESERVATION
     // =================================================
 
     const handleNewReservation = () => {
 
-        setShowSuccess(false);
+        setShowSuccess(
+            false
+        );
 
-        setSuccess("");
+        setSuccess(
+            ""
+        );
 
-        setSelectedTable(null);
+        setError(
+            ""
+        );
+
+        setSelectedTable(
+            null
+        );
+
 
         setFormData({
 
             name:
                 user?.name || "",
 
-            phone: "",
+            phone:
+                "",
 
             email:
                 user?.email || "",
 
-            date: "",
+            date:
+                "",
 
-            time: "",
+            time:
+                "",
 
-            guests: "",
+            guests:
+                "",
 
             occasion:
                 "Casual Dining",
 
-            message: "",
+            message:
+                "",
 
         });
 
-        setError("");
 
         window.scrollTo({
             top: 0,
@@ -807,68 +1080,26 @@ export default function Reservation() {
     // AUTH LOADING
     // =================================================
 
-    if (authLoading) {
+    if (
+        authLoading
+    ) {
 
         return (
 
             <main
-                style={{
-                    minHeight:
-                        "100vh",
-
-                    padding:
-                        "140px 20px 80px",
-
-                    background:
-                        "linear-gradient(135deg, #120b07 0%, #1a0f09 55%, #241207 100%)",
-
-                    color:
-                        "#ffffff",
-
-                    display:
-                        "flex",
-
-                    alignItems:
-                        "center",
-
-                    justifyContent:
-                        "center",
-
-                    fontFamily:
-                        "Poppins, Arial, sans-serif",
-                }}
+                className="reservation-page"
             >
 
                 <div
-                    style={{
-                        textAlign:
-                            "center",
-                    }}
+                    className="reservation-loading"
                 >
 
                     <div
-                        style={{
-                            fontSize:
-                                "42px",
+                        className="reservation-spinner"
+                    />
 
-                            marginBottom:
-                                "16px",
-                        }}
-                    >
-                        🍽️
-                    </div>
-
-                    <h2>
+                    <p>
                         Checking your account...
-                    </h2>
-
-                    <p
-                        style={{
-                            color:
-                                "#b9aea7",
-                        }}
-                    >
-                        Please wait.
                     </p>
 
                 </div>
@@ -889,159 +1120,70 @@ export default function Reservation() {
         return (
 
             <main
-                style={{
-                    minHeight:
-                        "100vh",
-
-                    padding:
-                        "140px 20px 80px",
-
-                    background:
-                        "linear-gradient(135deg, #120b07 0%, #1a0f09 55%, #241207 100%)",
-
-                    color:
-                        "#ffffff",
-
-                    fontFamily:
-                        "Poppins, Arial, sans-serif",
-
-                    display:
-                        "flex",
-
-                    alignItems:
-                        "center",
-
-                    justifyContent:
-                        "center",
-                }}
+                className="reservation-page"
             >
 
                 <div
-                    style={{
-                        width:
-                            "min(560px, 100%)",
-
-                        padding:
-                            "50px 35px",
-
-                        borderRadius:
-                            "28px",
-
-                        background:
-                            "rgba(255,255,255,0.07)",
-
-                        border:
-                            "1px solid rgba(255,159,28,0.25)",
-
-                        backdropFilter:
-                            "blur(18px)",
-
-                        textAlign:
-                            "center",
-
-                        boxShadow:
-                            "0 30px 80px rgba(0,0,0,0.35)",
-                    }}
+                    className="reservation-container"
                 >
 
                     <div
-                        style={{
-                            fontSize:
-                                "52px",
-
-                            marginBottom:
-                                "15px",
-                        }}
+                        className="reservation-success-card"
                     >
-                        🔐
+
+                        <div
+                            className="reservation-success-icon"
+                        >
+                            🔐
+                        </div>
+
+
+                        <span
+                            className="reservation-success-badge"
+                        >
+                            SWAAD & SPICE
+                        </span>
+
+
+                        <h1>
+                            Login to Book
+                        </h1>
+
+
+                        <p
+                            className="reservation-success-description"
+                        >
+                            Please login to choose your
+                            dining experience and reserve
+                            your table.
+                        </p>
+
+
+                        <div
+                            className="reservation-success-actions"
+                        >
+
+                            <button
+                                type="button"
+                                className="reservation-primary-btn"
+                                onClick={() =>
+                                    navigate(
+                                        "/login",
+                                        {
+                                            state: {
+                                                from:
+                                                    "/reservation",
+                                            },
+                                        }
+                                    )
+                                }
+                            >
+                                Login to Continue →
+                            </button>
+
+                        </div>
+
                     </div>
-
-                    <span
-                        style={{
-                            color:
-                                "#ff9f1c",
-
-                            fontSize:
-                                "12px",
-
-                            fontWeight:
-                                "700",
-
-                            letterSpacing:
-                                "3px",
-                        }}
-                    >
-                        SWAAD & SPICE
-                    </span>
-
-                    <h1
-                        style={{
-                            margin:
-                                "12px 0",
-
-                            fontSize:
-                                "clamp(30px, 5vw, 46px)",
-                        }}
-                    >
-                        Login to Book
-                    </h1>
-
-                    <p
-                        style={{
-                            color:
-                                "#bdb2aa",
-
-                            lineHeight:
-                                "1.7",
-
-                            marginBottom:
-                                "28px",
-                        }}
-                    >
-                        Please login to choose your
-                        dining experience and reserve
-                        your table.
-                    </p>
-
-                    <button
-                        type="button"
-                        onClick={() =>
-                            navigate("/login")
-                        }
-                        style={{
-                            width:
-                                "100%",
-
-                            minHeight:
-                                "52px",
-
-                            border:
-                                "none",
-
-                            borderRadius:
-                                "14px",
-
-                            background:
-                                "linear-gradient(135deg, #ff7b00, #ff9f1c)",
-
-                            color:
-                                "#ffffff",
-
-                            fontSize:
-                                "15px",
-
-                            fontWeight:
-                                "700",
-
-                            cursor:
-                                "pointer",
-
-                            boxShadow:
-                                "0 15px 35px rgba(255,123,0,0.25)",
-                        }}
-                    >
-                        Login to Continue →
-                    </button>
 
                 </div>
 
@@ -1053,335 +1195,309 @@ export default function Reservation() {
 
 
     // =================================================
-    // MAIN UI
+    // SUCCESS SCREEN
     // =================================================
 
-    return (
+    if (
+        showSuccess
+    ) {
 
-        <main
-            style={{
-                minHeight:
-                    "100vh",
+        return (
 
-                padding:
-                    "120px 20px 90px",
-
-                background:
-                    "linear-gradient(135deg, #120b07 0%, #1a0f09 52%, #241207 100%)",
-
-                color:
-                    "#ffffff",
-
-                fontFamily:
-                    "Poppins, Arial, sans-serif",
-
-                overflow:
-                    "hidden",
-            }}
-        >
-
-            <div
-                style={{
-                    width:
-                        "min(1200px, 100%)",
-
-                    margin:
-                        "0 auto",
-                }}
+            <main
+                className="reservation-page"
             >
 
-                {/* =================================================
-                    HERO
-                ================================================= */}
-
-                <section
-                    style={{
-                        textAlign:
-                            "center",
-
-                        padding:
-                            "35px 10px 60px",
-                    }}
+                <div
+                    className="reservation-container"
                 >
 
-                    <span
-                        style={{
-                            display:
-                                "inline-block",
-
-                            color:
-                                "#ff9f1c",
-
-                            fontSize:
-                                "12px",
-
-                            fontWeight:
-                                "700",
-
-                            letterSpacing:
-                                "4px",
-
-                            marginBottom:
-                                "18px",
-                        }}
-                    >
-                        ✦ SWAAD & SPICE HOUSE ✦
-                    </span>
-
-
-                    <h1
-                        style={{
-                            margin:
-                                "0",
-
-                            fontFamily:
-                                "Georgia, serif",
-
-                            fontSize:
-                                "clamp(42px, 7vw, 76px)",
-
-                            lineHeight:
-                                "1.05",
-
-                            letterSpacing:
-                                "-2px",
-                        }}
-                    >
-                        Reserve Your
-                        <span
-                            style={{
-                                display:
-                                    "block",
-
-                                color:
-                                    "#ff9f1c",
-
-                                fontStyle:
-                                    "italic",
-                            }}
-                        >
-                            Perfect Table.
-                        </span>
-                    </h1>
-
-
-                    <p
-                        style={{
-                            maxWidth:
-                                "680px",
-
-                            margin:
-                                "24px auto 0",
-
-                            color:
-                                "#bdb2aa",
-
-                            fontSize:
-                                "16px",
-
-                            lineHeight:
-                                "1.8",
-                        }}
-                    >
-                        Choose your dining experience,
-                        select your preferred date and
-                        time, and send us a reservation
-                        request. Your booking becomes
-                        confirmed only after our team
-                        approves it.
-                    </p>
-
-                </section>
-
-
-                {/* =================================================
-                    SUCCESS
-                ================================================= */}
-
-                {showSuccess && (
-                    <section
-                        style={{
-                            marginBottom:
-                                "35px",
-
-                            padding:
-                                "28px",
-
-                            borderRadius:
-                                "24px",
-
-                            background:
-                                "rgba(34,197,94,0.10)",
-
-                            border:
-                                "1px solid rgba(34,197,94,0.35)",
-
-                            boxShadow:
-                                "0 20px 50px rgba(0,0,0,0.18)",
-                        }}
+                    <header
+                        className="reservation-header"
                     >
 
                         <div
-                            style={{
-                                display:
-                                    "flex",
+                            className="reservation-header-content"
+                        >
 
-                                gap:
-                                    "18px",
+                            <span
+                                className="reservation-eyebrow"
+                            >
+                                ✦ SWAAD & SPICE HOUSE ✦
+                            </span>
 
-                                alignItems:
-                                    "flex-start",
+                            <h1>
+                                Reservation Confirmed
+                            </h1>
 
-                                flexWrap:
-                                    "wrap",
-                            }}
+                            <p>
+                                Your reservation request has
+                                been successfully submitted.
+                            </p>
+
+                        </div>
+
+                    </header>
+
+
+                    <section
+                        className="reservation-success-card"
+                    >
+
+                        <div
+                            className="reservation-success-icon"
+                        >
+                            ✓
+                        </div>
+
+
+                        <span
+                            className="reservation-success-badge"
+                        >
+                            REQUEST SUBMITTED
+                        </span>
+
+
+                        <h1>
+                            Reservation Request Sent!
+                        </h1>
+
+
+                        <p
+                            className="reservation-success-description"
+                        >
+                            {success}
+                            {" "}
+                            Our team will review your request
+                            and confirm your table after checking
+                            availability.
+                        </p>
+
+
+                        <div
+                            className="reservation-summary"
                         >
 
                             <div
-                                style={{
-                                    width:
-                                        "54px",
-
-                                    height:
-                                        "54px",
-
-                                    borderRadius:
-                                        "50%",
-
-                                    background:
-                                        "rgba(34,197,94,0.18)",
-
-                                    display:
-                                        "flex",
-
-                                    alignItems:
-                                        "center",
-
-                                    justifyContent:
-                                        "center",
-
-                                    fontSize:
-                                        "27px",
-
-                                    flexShrink:
-                                        0,
-                                }}
+                                className="reservation-summary-row"
                             >
-                                ✓
+
+                                <span>
+                                    Guest Name
+                                </span>
+
+                                <strong>
+                                    {formData.name}
+                                </strong>
+
                             </div>
 
 
                             <div
-                                style={{
-                                    flex:
-                                        1,
-                                }}
+                                className="reservation-summary-row"
                             >
 
-                                <h2
-                                    style={{
-                                        margin:
-                                            "0 0 8px",
+                                <span>
+                                    Dining Experience
+                                </span>
 
-                                        fontSize:
-                                            "22px",
-                                    }}
-                                >
-                                    Reservation Request Sent!
-                                </h2>
-
-                                <p
-                                    style={{
-                                        margin:
-                                            0,
-
-                                        color:
-                                            "#c7d7c9",
-
-                                        lineHeight:
-                                            "1.7",
-                                    }}
-                                >
-                                    {success}
-                                    {" "}
-                                    Our team will review your
-                                    request and confirm your
-                                    table after checking
-                                    availability.
-                                </p>
+                                <strong>
+                                    {selectedTable?.type}
+                                </strong>
 
                             </div>
 
 
+                            <div
+                                className="reservation-summary-row"
+                            >
+
+                                <span>
+                                    Date
+                                </span>
+
+                                <strong>
+                                    {formData.date ||
+                                        "Submitted"}
+                                </strong>
+
+                            </div>
+
+
+                            <div
+                                className="reservation-summary-row"
+                            >
+
+                                <span>
+                                    Time
+                                </span>
+
+                                <strong>
+                                    {formData.time ||
+                                        "Submitted"}
+                                </strong>
+
+                            </div>
+
+
+                            <div
+                                className="reservation-summary-row"
+                            >
+
+                                <span>
+                                    Guests
+                                </span>
+
+                                <strong>
+                                    {formData.guests}
+                                </strong>
+
+                            </div>
+
+
+                            <div
+                                className="reservation-summary-row total"
+                            >
+
+                                <span>
+                                    Table Price
+                                </span>
+
+                                <strong>
+                                    {formatCurrency(
+                                        selectedTable?.price
+                                    )}
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+
+                        <div
+                            className="reservation-success-note"
+                        >
+
+                            <span>
+                                ℹ️
+                            </span>
+
+                            <p>
+                                Your request is currently
+                                pending. You can track the
+                                status from My Reservations.
+                                The table becomes confirmed only
+                                after our team approves it.
+                            </p>
+
+                        </div>
+
+
+                        <div
+                            className="reservation-success-actions"
+                        >
+
                             <button
                                 type="button"
+                                className="reservation-primary-btn"
                                 onClick={() =>
                                     navigate(
                                         "/my-reservations"
                                     )
                                 }
-                                style={{
-                                    minHeight:
-                                        "44px",
-
-                                    padding:
-                                        "0 20px",
-
-                                    border:
-                                        "1px solid rgba(255,255,255,0.15)",
-
-                                    borderRadius:
-                                        "12px",
-
-                                    background:
-                                        "rgba(255,255,255,0.06)",
-
-                                    color:
-                                        "#ffffff",
-
-                                    cursor:
-                                        "pointer",
-
-                                    fontWeight:
-                                        "600",
-                                }}
                             >
-                                My Reservations
+                                View My Reservations
+                            </button>
+
+
+                            <button
+                                type="button"
+                                className="reservation-secondary-btn"
+                                onClick={() =>
+                                    navigate(
+                                        "/menu"
+                                    )
+                                }
+                            >
+                                Explore Menu
+                            </button>
+
+
+                            <button
+                                type="button"
+                                className="reservation-link-btn"
+                                onClick={
+                                    handleNewReservation
+                                }
+                            >
+                                + Make Another Reservation
                             </button>
 
                         </div>
 
-
-                        <button
-                            type="button"
-                            onClick={
-                                handleNewReservation
-                            }
-                            style={{
-                                marginTop:
-                                    "20px",
-
-                                border:
-                                    "none",
-
-                                background:
-                                    "transparent",
-
-                                color:
-                                    "#ff9f1c",
-
-                                cursor:
-                                    "pointer",
-
-                                fontWeight:
-                                    "700",
-                            }}
-                        >
-                            + Make Another Reservation
-                        </button>
-
                     </section>
-                )}
+
+                </div>
+
+            </main>
+
+        );
+
+    }
+
+
+    // =================================================
+    // MAIN RESERVATION UI
+    // =================================================
+
+    return (
+
+        <main
+            className="reservation-page"
+        >
+
+            <div
+                className="reservation-container"
+            >
+
+                {/* =================================================
+                    HEADER
+                ================================================= */}
+
+                <header
+                    className="reservation-header"
+                >
+
+                    <div
+                        className="reservation-header-content"
+                    >
+
+                        <span
+                            className="reservation-eyebrow"
+                        >
+                            ✦ SWAAD & SPICE HOUSE ✦
+                        </span>
+
+
+                        <h1>
+                            Reserve Your
+                            <br />
+                            Perfect Table.
+                        </h1>
+
+
+                        <p>
+                            Choose your dining experience,
+                            select your preferred date and
+                            time, and send us a reservation
+                            request. Your booking becomes
+                            confirmed only after our team
+                            approves it.
+                        </p>
+
+                    </div>
+
+                </header>
 
 
                 {/* =================================================
@@ -1389,121 +1505,103 @@ export default function Reservation() {
                 ================================================= */}
 
                 {error && (
+
                     <div
+                        className="reservation-error"
                         role="alert"
-                        style={{
-                            marginBottom:
-                                "25px",
-
-                            padding:
-                                "16px 18px",
-
-                            borderRadius:
-                                "14px",
-
-                            background:
-                                "rgba(239,68,68,0.10)",
-
-                            border:
-                                "1px solid rgba(239,68,68,0.30)",
-
-                            color:
-                                "#fecaca",
-
-                            lineHeight:
-                                "1.5",
-                        }}
                     >
-                        ⚠️ {error}
+
+                        <div
+                            className="reservation-error-icon"
+                        >
+                            !
+                        </div>
+
+
+                        <div>
+
+                            <strong>
+                                Reservation could not be completed
+                            </strong>
+
+                            <p>
+                                {error}
+                            </p>
+
+                        </div>
+
+
+                        <button
+                            type="button"
+                            onClick={() =>
+                                setError("")
+                            }
+                            aria-label="Close error"
+                        >
+                            ×
+                        </button>
+
                     </div>
+
                 )}
 
 
-                {!showSuccess && (
+                {/* =================================================
+                    MAIN LAYOUT
+                ================================================= */}
+
+                <div
+                    className="reservation-layout"
+                >
+
+                    {/* =================================================
+                        FORM
+                    ================================================= */}
+
                     <form
+                        className="reservation-form-card"
                         onSubmit={
                             handleSubmit
                         }
                     >
 
-                        {/* =================================================
-                            STEP 1 — EXPERIENCE
-                        ================================================= */}
+                        {/* =============================================
+                            STEP 01
+                        ============================================= */}
 
                         <section
-                            style={{
-                                marginBottom:
-                                    "45px",
-                            }}
+                            className="reservation-section"
                         >
 
                             <div
-                                style={{
-                                    marginBottom:
-                                        "22px",
-                                }}
+                                className="reservation-section-heading"
                             >
 
-                                <span
-                                    style={{
-                                        color:
-                                            "#ff9f1c",
-
-                                        fontSize:
-                                            "11px",
-
-                                        fontWeight:
-                                            "700",
-
-                                        letterSpacing:
-                                            "3px",
-                                    }}
+                                <div
+                                    className="reservation-step-number"
                                 >
-                                    STEP 01
-                                </span>
+                                    1
+                                </div>
 
-                                <h2
-                                    style={{
-                                        margin:
-                                            "8px 0 6px",
 
-                                        fontFamily:
-                                            "Georgia, serif",
+                                <div>
 
-                                        fontSize:
-                                            "clamp(28px, 4vw, 42px)",
-                                    }}
-                                >
-                                    Choose Your Experience
-                                </h2>
+                                    <h2>
+                                        Choose Your Experience
+                                    </h2>
 
-                                <p
-                                    style={{
-                                        margin:
-                                            0,
+                                    <p>
+                                        Select the dining setup
+                                        that suits your occasion.
+                                    </p>
 
-                                        color:
-                                            "#9f958e",
-                                    }}
-                                >
-                                    Select the dining setup
-                                    that suits your occasion.
-                                </p>
+                                </div>
 
                             </div>
 
 
                             <div
-                                style={{
-                                    display:
-                                        "grid",
-
-                                    gridTemplateColumns:
-                                        "repeat(auto-fit, minmax(210px, 1fr))",
-
-                                    gap:
-                                        "18px",
-                                }}
+                                className="reservation-table-grid"
                             >
 
                                 {TABLE_OPTIONS.map(
@@ -1521,215 +1619,96 @@ export default function Reservation() {
                                                     table.id
                                                 }
                                                 type="button"
+                                                className={`reservation-table-option ${
+                                                    isSelected
+                                                        ? "selected"
+                                                        : ""
+                                                }`}
                                                 onClick={() =>
                                                     handleTableSelect(
                                                         table
                                                     )
                                                 }
-                                                style={{
-                                                    position:
-                                                        "relative",
-
-                                                    textAlign:
-                                                        "left",
-
-                                                    padding:
-                                                        "24px 20px",
-
-                                                    minHeight:
-                                                        "250px",
-
-                                                    borderRadius:
-                                                        "22px",
-
-                                                    border:
-                                                        isSelected
-                                                            ? "2px solid #ff9f1c"
-                                                            : "1px solid rgba(255,255,255,0.10)",
-
-                                                    background:
-                                                        isSelected
-                                                            ? "linear-gradient(145deg, rgba(255,123,0,0.18), rgba(255,255,255,0.05))"
-                                                            : "rgba(255,255,255,0.045)",
-
-                                                    color:
-                                                        "#ffffff",
-
-                                                    cursor:
-                                                        "pointer",
-
-                                                    transition:
-                                                        "all 0.25s ease",
-
-                                                    boxShadow:
-                                                        isSelected
-                                                            ? "0 18px 45px rgba(255,123,0,0.16)"
-                                                            : "0 10px 30px rgba(0,0,0,0.12)",
-                                                }}
+                                                aria-pressed={
+                                                    isSelected
+                                                }
                                             >
 
-                                                <span
-                                                    style={{
-                                                        position:
-                                                            "absolute",
-
-                                                        top:
-                                                            "15px",
-
-                                                        right:
-                                                            "15px",
-
-                                                        padding:
-                                                            "5px 9px",
-
-                                                        borderRadius:
-                                                            "999px",
-
-                                                        background:
-                                                            isSelected
-                                                                ? "#ff7b00"
-                                                                : "rgba(255,159,28,0.10)",
-
-                                                        color:
-                                                            "#ffcf9b",
-
-                                                        fontSize:
-                                                            "10px",
-
-                                                        fontWeight:
-                                                            "700",
-                                                    }}
-                                                >
-                                                    {table.badge}
-                                                </span>
-
+                                                {/* TOP */}
 
                                                 <div
-                                                    style={{
-                                                        fontSize:
-                                                            "38px",
-
-                                                        marginBottom:
-                                                            "15px",
-                                                    }}
-                                                >
-                                                    {table.icon}
-                                                </div>
-
-
-                                                <h3
-                                                    style={{
-                                                        margin:
-                                                            "0 0 8px",
-
-                                                        fontSize:
-                                                            "18px",
-                                                    }}
-                                                >
-                                                    {table.type}
-                                                </h3>
-
-
-                                                <p
-                                                    style={{
-                                                        minHeight:
-                                                            "58px",
-
-                                                        margin:
-                                                            "0 0 18px",
-
-                                                        color:
-                                                            "#a89d95",
-
-                                                        fontSize:
-                                                            "13px",
-
-                                                        lineHeight:
-                                                            "1.6",
-                                                    }}
-                                                >
-                                                    {
-                                                        table.description
-                                                    }
-                                                </p>
-
-
-                                                <div
-                                                    style={{
-                                                        display:
-                                                            "flex",
-
-                                                        alignItems:
-                                                            "flex-end",
-
-                                                        justifyContent:
-                                                            "space-between",
-
-                                                        gap:
-                                                            "10px",
-                                                    }}
+                                                    className="reservation-table-option-top"
                                                 >
 
-                                                    <div>
-
-                                                        <span
-                                                            style={{
-                                                                display:
-                                                                    "block",
-
-                                                                color:
-                                                                    "#8d827b",
-
-                                                                fontSize:
-                                                                    "11px",
-                                                            }}
-                                                        >
-                                                            EXPERIENCE
-                                                            PRICE
-                                                        </span>
-
-                                                        <strong
-                                                            style={{
-                                                                display:
-                                                                    "block",
-
-                                                                marginTop:
-                                                                    "3px",
-
-                                                                color:
-                                                                    "#ffb15a",
-
-                                                                fontSize:
-                                                                    "20px",
-                                                            }}
-                                                        >
-                                                            {formatCurrency(
-                                                                table.price
-                                                            )}
-                                                        </strong>
-
+                                                    <div
+                                                        className="reservation-table-option-icon"
+                                                    >
+                                                        {
+                                                            table.icon
+                                                        }
                                                     </div>
 
 
-                                                    <span
-                                                        style={{
-                                                            color:
-                                                                isSelected
-                                                                    ? "#ff9f1c"
-                                                                    : "#8d827b",
+                                                    {isSelected && (
 
-                                                            fontSize:
-                                                                "12px",
+                                                        <span
+                                                            className="reservation-selected-check"
+                                                        >
+                                                            ✓
+                                                        </span>
 
-                                                            fontWeight:
-                                                                "700",
-                                                        }}
-                                                    >
-                                                        {selectedTable?.id ===
-                                                        table.id
-                                                            ? "✓ Selected"
-                                                            : "Select →"}
+                                                    )}
+
+                                                </div>
+
+
+                                                {/* CONTENT */}
+
+                                                <div
+                                                    className="reservation-table-option-content"
+                                                >
+
+                                                    <h3>
+                                                        {
+                                                            table.type
+                                                        }
+                                                    </h3>
+
+
+                                                    <p>
+                                                        {
+                                                            table.description
+                                                        }
+                                                    </p>
+
+                                                </div>
+
+
+                                                {/* META */}
+
+                                                <div
+                                                    className="reservation-table-option-meta"
+                                                >
+
+                                                    <span>
+                                                        👥{" "}
+                                                        {
+                                                            table.minGuests
+                                                        }
+                                                        {table.minGuests !==
+                                                        table.maxGuests
+                                                            ? `–${table.maxGuests}`
+                                                            : ""}
+                                                        {" "}
+                                                        guests
                                                     </span>
+
+
+                                                    <strong>
+                                                        {formatCurrency(
+                                                            table.price
+                                                        )}
+                                                    </strong>
 
                                                 </div>
 
@@ -1745,309 +1724,169 @@ export default function Reservation() {
                         </section>
 
 
-                        {/* =================================================
-                            SELECTED EXPERIENCE SUMMARY
-                        ================================================= */}
-
-                        {selectedTable && (
-                            <div
-                                style={{
-                                    marginBottom:
-                                        "35px",
-
-                                    padding:
-                                        "20px 22px",
-
-                                    borderRadius:
-                                        "18px",
-
-                                    background:
-                                        "rgba(255,159,28,0.08)",
-
-                                    border:
-                                        "1px solid rgba(255,159,28,0.20)",
-
-                                    display:
-                                        "flex",
-
-                                    justifyContent:
-                                        "space-between",
-
-                                    alignItems:
-                                        "center",
-
-                                    gap:
-                                        "15px",
-
-                                    flexWrap:
-                                        "wrap",
-                                }}
-                            >
-
-                                <div>
-
-                                    <span
-                                        style={{
-                                            color:
-                                                "#9e9189",
-
-                                            fontSize:
-                                                "11px",
-
-                                            letterSpacing:
-                                                "1px",
-                                        }}
-                                    >
-                                        SELECTED EXPERIENCE
-                                    </span>
-
-                                    <strong
-                                        style={{
-                                            display:
-                                                "block",
-
-                                            marginTop:
-                                                "4px",
-
-                                            fontSize:
-                                                "17px",
-                                        }}
-                                    >
-                                        {selectedTable.icon}
-                                        {" "}
-                                        {selectedTable.type}
-                                    </strong>
-
-                                </div>
-
-
-                                <div
-                                    style={{
-                                        textAlign:
-                                            "right",
-                                    }}
-                                >
-
-                                    <span
-                                        style={{
-                                            display:
-                                                "block",
-
-                                            color:
-                                                "#9e9189",
-
-                                            fontSize:
-                                                "11px",
-                                        }}
-                                    >
-                                        TABLE PRICE
-                                    </span>
-
-                                    <strong
-                                        style={{
-                                            color:
-                                                "#ff9f1c",
-
-                                            fontSize:
-                                                "20px",
-                                        }}
-                                    >
-                                        {formatCurrency(
-                                            selectedTable.price
-                                        )}
-                                    </strong>
-
-                                </div>
-
-                            </div>
-                        )}
-
-
-                        {/* =================================================
-                            STEP 2 — CUSTOMER DETAILS
-                        ================================================= */}
+                        {/* =============================================
+                            STEP 02
+                        ============================================= */}
 
                         <section
-                            style={{
-                                marginBottom:
-                                    "45px",
-                            }}
+                            className="reservation-section"
                         >
 
                             <div
-                                style={{
-                                    marginBottom:
-                                        "22px",
-                                }}
+                                className="reservation-section-heading"
                             >
 
-                                <span
-                                    style={{
-                                        color:
-                                            "#ff9f1c",
-
-                                        fontSize:
-                                            "11px",
-
-                                        fontWeight:
-                                            "700",
-
-                                        letterSpacing:
-                                            "3px",
-                                    }}
+                                <div
+                                    className="reservation-step-number"
                                 >
-                                    STEP 02
-                                </span>
+                                    2
+                                </div>
 
-                                <h2
-                                    style={{
-                                        margin:
-                                            "8px 0 6px",
 
-                                        fontFamily:
-                                            "Georgia, serif",
+                                <div>
 
-                                        fontSize:
-                                            "clamp(28px, 4vw, 42px)",
-                                    }}
-                                >
-                                    Your Details
-                                </h2>
+                                    <h2>
+                                        Date, Time & Guests
+                                    </h2>
 
-                                <p
-                                    style={{
-                                        margin:
-                                            0,
+                                    <p>
+                                        Tell us when you would
+                                        like to dine with us.
+                                    </p>
 
-                                        color:
-                                            "#9f958e",
-                                    }}
-                                >
-                                    Tell us how we can reach
-                                    you about your reservation.
-                                </p>
+                                </div>
 
                             </div>
 
 
                             <div
-                                style={{
-                                    display:
-                                        "grid",
-
-                                    gridTemplateColumns:
-                                        "repeat(2, minmax(0, 1fr))",
-
-                                    gap:
-                                        "18px",
-                                }}
+                                className="reservation-input-grid"
                             >
 
-                                {/* NAME */}
+                                {/* DATE */}
 
                                 <div
-                                    style={{
-                                        gridColumn:
-                                            "span 1",
-                                    }}
+                                    className="reservation-field"
                                 >
 
-                                    <label
-                                        style={labelStyle}
-                                    >
-                                        Full Name *
+                                    <label htmlFor="date">
+                                        Reservation Date
+                                        <span>
+                                            *
+                                        </span>
                                     </label>
 
+
                                     <input
-                                        type="text"
-                                        name="name"
+                                        id="date"
+                                        type="date"
+                                        name="date"
                                         value={
-                                            formData.name
+                                            formData.date
+                                        }
+                                        min={
+                                            getToday()
                                         }
                                         onChange={
                                             handleChange
                                         }
-                                        placeholder="Enter your full name"
-                                        autoComplete="name"
-                                        style={
-                                            inputStyle
-                                        }
+                                        required
                                     />
 
                                 </div>
 
 
-                                {/* PHONE */}
+                                {/* TIME */}
 
-                                <div>
+                                <div
+                                    className="reservation-field"
+                                >
 
-                                    <label
-                                        style={labelStyle}
-                                    >
-                                        Mobile Number *
+                                    <label htmlFor="time">
+                                        Reservation Time
+                                        <span>
+                                            *
+                                        </span>
                                     </label>
 
+
                                     <input
-                                        type="tel"
-                                        name="phone"
+                                        id="time"
+                                        type="time"
+                                        name="time"
                                         value={
-                                            formData.phone
+                                            formData.time
                                         }
                                         onChange={
                                             handleChange
                                         }
-                                        placeholder="10 digit mobile number"
-                                        maxLength={10}
-                                        inputMode="numeric"
-                                        autoComplete="tel"
-                                        style={
-                                            inputStyle
-                                        }
+                                        required
                                     />
 
                                 </div>
 
 
-                                {/* EMAIL */}
+                                {/* GUESTS */}
 
-                                <div>
+                                <div
+                                    className="reservation-field"
+                                >
 
-                                    <label
-                                        style={labelStyle}
-                                    >
-                                        Email Address
+                                    <label htmlFor="guests">
+                                        Number of Guests
+                                        <span>
+                                            *
+                                        </span>
                                     </label>
 
+
                                     <input
-                                        type="email"
-                                        name="email"
+                                        id="guests"
+                                        type="number"
+                                        name="guests"
                                         value={
-                                            formData.email
+                                            formData.guests
+                                        }
+                                        min={
+                                            selectedTable?.minGuests ||
+                                            1
+                                        }
+                                        max={
+                                            selectedTable?.maxGuests ||
+                                            10
+                                        }
+                                        placeholder={
+                                            selectedTable
+                                                ? `${selectedTable.minGuests}–${selectedTable.maxGuests}`
+                                                : "Select table first"
                                         }
                                         onChange={
                                             handleChange
                                         }
-                                        placeholder="your@email.com"
-                                        autoComplete="email"
-                                        style={
-                                            inputStyle
-                                        }
+                                        required
                                     />
+
+
+                                    <small>
+                                        {selectedGuestsText}
+                                    </small>
 
                                 </div>
 
 
                                 {/* OCCASION */}
 
-                                <div>
+                                <div
+                                    className="reservation-field"
+                                >
 
-                                    <label
-                                        style={labelStyle}
-                                    >
+                                    <label htmlFor="occasion">
                                         Occasion
                                     </label>
 
+
                                     <select
+                                        id="occasion"
                                         name="occasion"
                                         value={
                                             formData.occasion
@@ -2055,13 +1894,11 @@ export default function Reservation() {
                                         onChange={
                                             handleChange
                                         }
-                                        style={
-                                            inputStyle
-                                        }
                                     >
 
                                         {OCCASIONS.map(
                                             (occasion) => (
+
                                                 <option
                                                     key={
                                                         occasion
@@ -2070,8 +1907,11 @@ export default function Reservation() {
                                                         occasion
                                                     }
                                                 >
-                                                    {occasion}
+                                                    {
+                                                        occasion
+                                                    }
                                                 </option>
+
                                             )
                                         )}
 
@@ -2084,711 +1924,464 @@ export default function Reservation() {
                         </section>
 
 
-                        {/* =================================================
-                            STEP 3 — DATE / TIME
-                        ================================================= */}
+                        {/* =============================================
+                            STEP 03
+                        ============================================= */}
 
                         <section
-                            style={{
-                                marginBottom:
-                                    "45px",
-                            }}
+                            className="reservation-section"
                         >
 
                             <div
-                                style={{
-                                    marginBottom:
-                                        "22px",
-                                }}
+                                className="reservation-section-heading"
                             >
 
-                                <span
-                                    style={{
-                                        color:
-                                            "#ff9f1c",
-
-                                        fontSize:
-                                            "11px",
-
-                                        fontWeight:
-                                            "700",
-
-                                        letterSpacing:
-                                            "3px",
-                                    }}
-                                >
-                                    STEP 03
-                                </span>
-
-                                <h2
-                                    style={{
-                                        margin:
-                                            "8px 0 6px",
-
-                                        fontFamily:
-                                            "Georgia, serif",
-
-                                        fontSize:
-                                            "clamp(28px, 4vw, 42px)",
-                                    }}
-                                >
-                                    Date, Time & Guests
-                                </h2>
-
-                                <p
-                                    style={{
-                                        margin:
-                                            0,
-
-                                        color:
-                                            "#9f958e",
-                                    }}
-                                >
-                                    Choose when you would
-                                    like to dine with us.
-                                </p>
-
-                            </div>
-
-
-                            <div
-                                style={{
-                                    display:
-                                        "grid",
-
-                                    gridTemplateColumns:
-                                        "repeat(3, minmax(0, 1fr))",
-
-                                    gap:
-                                        "18px",
-                                }}
-                            >
-
-                                {/* DATE */}
-
-                                <div>
-
-                                    <label
-                                        style={labelStyle}
-                                    >
-                                        Reservation Date *
-                                    </label>
-
-                                    <input
-                                        type="date"
-                                        name="date"
-                                        value={
-                                            formData.date
-                                        }
-                                        min={
-                                            getToday()
-                                        }
-                                        onChange={
-                                            handleChange
-                                        }
-                                        style={
-                                            inputStyle
-                                        }
-                                    />
-
-                                </div>
-
-
-                                {/* TIME */}
-
-                                <div>
-
-                                    <label
-                                        style={labelStyle}
-                                    >
-                                        Preferred Time *
-                                    </label>
-
-                                    <input
-                                        type="time"
-                                        name="time"
-                                        value={
-                                            formData.time
-                                        }
-                                        onChange={
-                                            handleChange
-                                        }
-                                        style={
-                                            inputStyle
-                                        }
-                                    />
-
-                                </div>
-
-
-                                {/* GUESTS */}
-
-                                <div>
-
-                                    <label
-                                        style={labelStyle}
-                                    >
-                                        Number of Guests *
-                                    </label>
-
-                                    <input
-                                        type="number"
-                                        name="guests"
-                                        value={
-                                            formData.guests
-                                        }
-                                        onChange={
-                                            handleChange
-                                        }
-                                        min={
-                                            selectedTable?.minGuests ||
-                                            1
-                                        }
-                                        max={
-                                            selectedTable?.maxGuests ||
-                                            10
-                                        }
-                                        placeholder={
-                                            selectedTable
-                                                ? `${selectedTable.minGuests}-${selectedTable.maxGuests}`
-                                                : "Select table first"
-                                        }
-                                        disabled={
-                                            !selectedTable
-                                        }
-                                        style={{
-                                            ...inputStyle,
-
-                                            opacity:
-                                                selectedTable
-                                                    ? 1
-                                                    : 0.55,
-                                        }}
-                                    />
-
-                                </div>
-
-                            </div>
-
-
-                            {selectedTable && (
                                 <div
-                                    style={{
-                                        marginTop:
-                                            "14px",
-
-                                        color:
-                                            "#a99d95",
-
-                                        fontSize:
-                                            "12px",
-                                    }}
+                                    className="reservation-step-number"
                                 >
-                                    👥 This experience supports{" "}
-                                    <strong
-                                        style={{
-                                            color:
-                                                "#ffb15a",
-                                        }}
-                                    >
-                                        {
-                                            selectedGuestsText
-                                        }
-                                    </strong>
-                                    .
+                                    3
                                 </div>
-                            )}
 
-                        </section>
-
-
-                        {/* =================================================
-                            STEP 4 — MESSAGE
-                        ================================================= */}
-
-                        <section
-                            style={{
-                                marginBottom:
-                                    "35px",
-                            }}
-                        >
-
-                            <div
-                                style={{
-                                    marginBottom:
-                                        "22px",
-                                }}
-                            >
-
-                                <span
-                                    style={{
-                                        color:
-                                            "#ff9f1c",
-
-                                        fontSize:
-                                            "11px",
-
-                                        fontWeight:
-                                            "700",
-
-                                        letterSpacing:
-                                            "3px",
-                                    }}
-                                >
-                                    STEP 04
-                                </span>
-
-                                <h2
-                                    style={{
-                                        margin:
-                                            "8px 0 6px",
-
-                                        fontFamily:
-                                            "Georgia, serif",
-
-                                        fontSize:
-                                            "clamp(28px, 4vw, 42px)",
-                                    }}
-                                >
-                                    Special Request
-                                </h2>
-
-                                <p
-                                    style={{
-                                        margin:
-                                            0,
-
-                                        color:
-                                            "#9f958e",
-                                    }}
-                                >
-                                    Let us know if you have
-                                    any special requirements.
-                                </p>
-
-                            </div>
-
-
-                            <textarea
-                                name="message"
-                                value={
-                                    formData.message
-                                }
-                                onChange={
-                                    handleChange
-                                }
-                                placeholder="Birthday decoration, window seat, dietary request, special occasion note..."
-                                rows={5}
-                                maxLength={500}
-                                style={{
-                                    ...inputStyle,
-
-                                    width:
-                                        "100%",
-
-                                    resize:
-                                        "vertical",
-
-                                    minHeight:
-                                        "130px",
-
-                                    lineHeight:
-                                        "1.6",
-                                }}
-                            />
-
-
-                            <div
-                                style={{
-                                    marginTop:
-                                        "7px",
-
-                                    textAlign:
-                                        "right",
-
-                                    color:
-                                        "#756a63",
-
-                                    fontSize:
-                                        "11px",
-                                }}
-                            >
-                                {
-                                    formData.message.length
-                                }
-                                /500
-                            </div>
-
-                        </section>
-
-
-                        {/* =================================================
-                            FINAL SUMMARY
-                        ================================================= */}
-
-                        <section
-                            style={{
-                                marginTop:
-                                    "20px",
-
-                                padding:
-                                    "28px",
-
-                                borderRadius:
-                                    "26px",
-
-                                background:
-                                    "linear-gradient(145deg, rgba(255,255,255,0.075), rgba(255,255,255,0.035))",
-
-                                border:
-                                    "1px solid rgba(255,255,255,0.10)",
-
-                                boxShadow:
-                                    "0 25px 70px rgba(0,0,0,0.20)",
-                            }}
-                        >
-
-                            <div
-                                style={{
-                                    display:
-                                        "flex",
-
-                                    justifyContent:
-                                        "space-between",
-
-                                    alignItems:
-                                        "center",
-
-                                    gap:
-                                        "20px",
-
-                                    flexWrap:
-                                        "wrap",
-                                }}
-                            >
 
                                 <div>
 
-                                    <span
-                                        style={{
-                                            color:
-                                                "#ff9f1c",
+                                    <h2>
+                                        Your Details
+                                    </h2>
 
-                                            fontSize:
-                                                "11px",
-
-                                            letterSpacing:
-                                                "2px",
-
-                                            fontWeight:
-                                                "700",
-                                        }}
-                                    >
-                                        READY TO REQUEST
-                                    </span>
-
-                                    <h3
-                                        style={{
-                                            margin:
-                                                "7px 0 4px",
-
-                                            fontSize:
-                                                "22px",
-                                        }}
-                                    >
-                                        {selectedTable
-                                            ? selectedTable.type
-                                            : "Select an experience"}
-                                    </h3>
-
-                                    <p
-                                        style={{
-                                            margin:
-                                                0,
-
-                                            color:
-                                                "#948981",
-
-                                            fontSize:
-                                                "13px",
-                                        }}
-                                    >
-                                        Reservation price is
-                                        separate from your
-                                        food bill.
+                                    <p>
+                                        We need these details to
+                                        confirm your reservation.
                                     </p>
 
                                 </div>
 
+                            </div>
+
+
+                            <div
+                                className="reservation-input-grid"
+                            >
+
+                                {/* NAME */}
 
                                 <div
-                                    style={{
-                                        textAlign:
-                                            "right",
-                                    }}
+                                    className="reservation-field"
                                 >
 
-                                    <span
-                                        style={{
-                                            display:
-                                                "block",
+                                    <label htmlFor="name">
+                                        Full Name
+                                        <span>
+                                            *
+                                        </span>
+                                    </label>
 
-                                            color:
-                                                "#8f847d",
 
-                                            fontSize:
-                                                "10px",
-
-                                            letterSpacing:
-                                                "1px",
-                                        }}
-                                    >
-                                        TABLE EXPERIENCE
-                                    </span>
-
-                                    <strong
-                                        style={{
-                                            display:
-                                                "block",
-
-                                            color:
-                                                "#ffb15a",
-
-                                            fontSize:
-                                                "27px",
-
-                                            marginTop:
-                                                "4px",
-                                        }}
-                                    >
-                                        {selectedTable
-                                            ? formatCurrency(
-                                                selectedTable.price
-                                            )
-                                            : "₹0"}
-                                    </strong>
+                                    <input
+                                        id="name"
+                                        type="text"
+                                        name="name"
+                                        value={
+                                            formData.name
+                                        }
+                                        onChange={
+                                            handleChange
+                                        }
+                                        placeholder="Enter your full name"
+                                        autoComplete="name"
+                                        required
+                                    />
 
                                 </div>
+
+
+                                {/* PHONE */}
+
+                                <div
+                                    className="reservation-field"
+                                >
+
+                                    <label htmlFor="phone">
+                                        Phone Number
+                                        <span>
+                                            *
+                                        </span>
+                                    </label>
+
+
+                                    <input
+                                        id="phone"
+                                        type="tel"
+                                        name="phone"
+                                        value={
+                                            formData.phone
+                                        }
+                                        onChange={
+                                            handleChange
+                                        }
+                                        placeholder="10 digit mobile number"
+                                        maxLength="10"
+                                        inputMode="numeric"
+                                        autoComplete="tel"
+                                        required
+                                    />
+
+                                </div>
+
+
+                                {/* EMAIL */}
+
+                                <div
+                                    className="reservation-field"
+                                >
+
+                                    <label htmlFor="email">
+                                        Email Address
+                                        <span>
+                                            *
+                                        </span>
+                                    </label>
+
+
+                                    <input
+                                        id="email"
+                                        type="email"
+                                        name="email"
+                                        value={
+                                            formData.email
+                                        }
+                                        onChange={
+                                            handleChange
+                                        }
+                                        placeholder="Enter your email"
+                                        autoComplete="email"
+                                        required
+                                    />
+
+                                </div>
+
+
+                                {/* MESSAGE */}
+
+                                <div
+                                    className="reservation-field full-width"
+                                >
+
+                                    <label htmlFor="message">
+                                        Special Request
+                                    </label>
+
+
+                                    <textarea
+                                        id="message"
+                                        name="message"
+                                        value={
+                                            formData.message
+                                        }
+                                        onChange={
+                                            handleChange
+                                        }
+                                        placeholder="Birthday decoration, seating preference, special request..."
+                                        maxLength="500"
+                                        rows="5"
+                                    />
+
+
+                                    <span
+                                        className="reservation-character-count"
+                                    >
+                                        {
+                                            formData.message.length
+                                        }
+                                        /500
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+                        </section>
+
+
+                        {/* =============================================
+                            SUBMIT
+                        ============================================= */}
+
+                        <div
+                            className="reservation-submit-area"
+                        >
+
+                            <div
+                                className="reservation-submit-note"
+                            >
+
+                                <span>
+                                    🔒
+                                </span>
+
+
+                                <p>
+                                    Your information is secure.
+                                    We only use it to manage
+                                    your reservation and contact
+                                    you about your booking.
+                                </p>
 
                             </div>
 
 
                             <button
                                 type="submit"
+                                className="reservation-submit-btn"
                                 disabled={
-                                    submitting ||
-                                    !selectedTable
+                                    submitting
                                 }
-                                style={{
-                                    width:
-                                        "100%",
-
-                                    marginTop:
-                                        "25px",
-
-                                    minHeight:
-                                        "58px",
-
-                                    border:
-                                        "none",
-
-                                    borderRadius:
-                                        "16px",
-
-                                    background:
-                                        submitting ||
-                                        !selectedTable
-                                            ? "rgba(255,255,255,0.10)"
-                                            : "linear-gradient(135deg, #ff7b00, #ff9f1c)",
-
-                                    color:
-                                        submitting ||
-                                        !selectedTable
-                                            ? "#777"
-                                            : "#ffffff",
-
-                                    fontSize:
-                                        "15px",
-
-                                    fontWeight:
-                                        "800",
-
-                                    letterSpacing:
-                                        "0.3px",
-
-                                    cursor:
-                                        submitting ||
-                                        !selectedTable
-                                            ? "not-allowed"
-                                            : "pointer",
-
-                                    boxShadow:
-                                        submitting ||
-                                        !selectedTable
-                                            ? "none"
-                                            : "0 18px 40px rgba(255,123,0,0.24)",
-
-                                    transition:
-                                        "all 0.25s ease",
-                                }}
                             >
-                                {submitting
-                                    ? "⏳ Sending Reservation Request..."
-                                    : selectedTable
-                                        ? "Reserve My Table →"
-                                        : "Select a Dining Experience First"}
+
+                                {submitting ? (
+
+                                    <>
+                                        <span
+                                            className="reservation-button-spinner"
+                                        />
+
+                                        Submitting...
+                                    </>
+
+                                ) : (
+
+                                    <>
+                                        Confirm Reservation
+
+                                        <span>
+                                            →
+                                        </span>
+                                    </>
+
+                                )}
+
                             </button>
 
-
-                            <p
-                                style={{
-                                    margin:
-                                        "14px 0 0",
-
-                                    textAlign:
-                                        "center",
-
-                                    color:
-                                        "#71665f",
-
-                                    fontSize:
-                                        "11px",
-
-                                    lineHeight:
-                                        "1.6",
-                                }}
-                            >
-                                Your reservation will remain
-                                <strong
-                                    style={{
-                                        color:
-                                            "#a99d95",
-                                    }}
-                                >
-                                    {" "}PENDING{" "}
-                                </strong>
-                                until our restaurant team
-                                confirms availability.
-                            </p>
-
-                        </section>
+                        </div>
 
                     </form>
-                )}
 
 
-                {/* =================================================
-                    FOOT NOTE
-                ================================================= */}
+                    {/* =================================================
+                        SUMMARY SIDEBAR
+                    ================================================= */}
 
-                <section
-                    style={{
-                        marginTop:
-                            "60px",
-
-                        padding:
-                            "25px",
-
-                        textAlign:
-                            "center",
-
-                        borderTop:
-                            "1px solid rgba(255,255,255,0.08)",
-
-                        color:
-                            "#746a64",
-
-                        fontSize:
-                            "12px",
-
-                        lineHeight:
-                            "1.8",
-                    }}
-                >
-                    <p
-                        style={{
-                            margin:
-                                0,
-                        }}
+                    <aside
+                        className="reservation-summary-card"
                     >
-                        🕐 Reservation requests are reviewed
-                        by our team based on actual table
-                        availability.
-                    </p>
 
-                    <p
-                        style={{
-                            margin:
-                                "6px 0 0",
-                        }}
-                    >
-                        📞 For urgent bookings, please contact
-                        the restaurant directly.
-                    </p>
+                        <div
+                            className="reservation-summary-header"
+                        >
 
-                </section>
+                            <span>
+                                Booking Summary
+                            </span>
+
+
+                            <span
+                                className="reservation-summary-live"
+                            >
+                                ● LIVE
+                            </span>
+
+                        </div>
+
+
+                        {/* SELECTED TABLE */}
+
+                        <div
+                            className="reservation-summary-table"
+                        >
+
+                            <div
+                                className="reservation-summary-table-icon"
+                            >
+                                {selectedTable?.icon ||
+                                    "🍽️"}
+                            </div>
+
+
+                            <div>
+
+                                <h3>
+                                    {
+                                        selectedTable?.type ||
+                                        "Choose a table"
+                                    }
+                                </h3>
+
+
+                                <p>
+                                    {
+                                        selectedTable
+                                            ? selectedGuestsText
+                                            : "Your experience will appear here"
+                                    }
+                                </p>
+
+                            </div>
+
+                        </div>
+
+
+                        <div
+                            className="reservation-summary-divider"
+                        />
+
+
+                        {/* DETAILS */}
+
+                        <div
+                            className="reservation-summary-details"
+                        >
+
+                            <div>
+
+                                <span>
+                                    Guest
+                                </span>
+
+                                <strong>
+                                    {
+                                        formData.name ||
+                                        "Not selected"
+                                    }
+                                </strong>
+
+                            </div>
+
+
+                            <div>
+
+                                <span>
+                                    Date
+                                </span>
+
+                                <strong>
+                                    {
+                                        formData.date ||
+                                        "Not selected"
+                                    }
+                                </strong>
+
+                            </div>
+
+
+                            <div>
+
+                                <span>
+                                    Time
+                                </span>
+
+                                <strong>
+                                    {
+                                        formData.time ||
+                                        "Not selected"
+                                    }
+                                </strong>
+
+                            </div>
+
+
+                            <div>
+
+                                <span>
+                                    Guests
+                                </span>
+
+                                <strong>
+                                    {
+                                        formData.guests ||
+                                        "Not selected"
+                                    }
+                                </strong>
+
+                            </div>
+
+
+                            <div>
+
+                                <span>
+                                    Occasion
+                                </span>
+
+                                <strong>
+                                    {
+                                        formData.occasion ||
+                                        "Casual Dining"
+                                    }
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+
+                        {/* PRICE */}
+
+                        <div
+                            className="reservation-price-row"
+                        >
+
+                            <span>
+                                Table Reservation Fee
+                            </span>
+
+
+                            <strong>
+                                {selectedTable
+                                    ? formatCurrency(
+                                        selectedTable.price
+                                    )
+                                    : "₹0"}
+                            </strong>
+
+                        </div>
+
+
+                        <p
+                            className="reservation-price-note"
+                        >
+                            This is the table reservation
+                            fee. Food and beverages are
+                            charged separately.
+                        </p>
+
+
+                        {/* INFO */}
+
+                        <div
+                            className="reservation-summary-info"
+                        >
+
+                            <div>
+                                ✓
+                            </div>
+
+
+                            <p>
+                                Your request will first be
+                                marked as <strong>PENDING</strong>.
+                                Our team will assign a table
+                                and confirm your reservation.
+                            </p>
+
+                        </div>
+
+                    </aside>
+
+                </div>
 
             </div>
 
         </main>
 
     );
+
 }
-
-
-// =====================================================
-// REUSABLE INLINE STYLES
-// =====================================================
-
-const labelStyle = {
-    display:
-        "block",
-
-    marginBottom:
-        "8px",
-
-    color:
-        "#d5cbc4",
-
-    fontSize:
-        "12px",
-
-    fontWeight:
-        "600",
-};
-
-
-const inputStyle = {
-    width:
-        "100%",
-
-    minHeight:
-        "52px",
-
-    padding:
-        "0 15px",
-
-    border:
-        "1px solid rgba(255,255,255,0.12)",
-
-    borderRadius:
-        "14px",
-
-    outline:
-        "none",
-
-    background:
-        "rgba(255,255,255,0.055)",
-
-    color:
-        "#ffffff",
-
-    fontSize:
-        "14px",
-
-    fontFamily:
-        "inherit",
-
-    boxSizing:
-        "border-box",
-};

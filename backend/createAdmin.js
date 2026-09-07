@@ -28,7 +28,7 @@ const createAdmin = async () => {
         );
 
         const adminEmail =
-            "admin@spicehouse.com";
+            "admin1@spicehouse.com";
 
         const adminPassword =
             "Admin@12345";

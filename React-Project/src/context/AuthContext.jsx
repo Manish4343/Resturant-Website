@@ -7,105 +7,299 @@ import {
 
 import axios from "axios";
 
+
 const AuthContext = createContext();
+
 
 const API_URL =
     import.meta.env.VITE_API_URL ||
     "http://localhost:5000/api";
 
 
-// =========================
-// NORMALIZE USER
-// =========================
+// =========================================================
+// GET ADMIN ROLE FROM JWT
+// =========================================================
 
-const normalizeUser = (userData) => {
-    if (!userData) return null;
+const getRoleFromToken = (token) => {
 
-    return {
-        ...userData,
+    try {
 
-        // Backend currently uses isAdmin.
-        // Frontend admin pages use role.
-        role:
-            userData.isAdmin === true
-                ? "admin"
-                : userData.role || "user",
-    };
+        if (!token) {
+            return null;
+        }
+
+        const parts = token.split(".");
+
+        if (parts.length !== 3) {
+            return null;
+        }
+
+        const payload =
+            JSON.parse(
+                atob(
+                    parts[1]
+                        .replace(/-/g, "+")
+                        .replace(/_/g, "/")
+                )
+            );
+
+        return payload?.role || null;
+
+    } catch (error) {
+
+        console.error(
+            "JWT role read error:",
+            error
+        );
+
+        return null;
+
+    }
+
 };
 
 
-export const AuthProvider = ({ children }) => {
+// =========================================================
+// NORMALIZE USER
+// =========================================================
 
-    // =========================
+const normalizeUser = (
+    userData,
+    token = null
+) => {
+
+    if (!userData) {
+        return null;
+    }
+
+
+    const tokenRole =
+        getRoleFromToken(token);
+
+
+    let role = "user";
+
+
+    // Backend role
+    if (
+        userData.role === "admin"
+    ) {
+
+        role = "admin";
+
+    }
+
+    // Backend isAdmin
+    else if (
+        userData.isAdmin === true
+    ) {
+
+        role = "admin";
+
+    }
+
+    // JWT role
+    else if (
+        tokenRole === "admin"
+    ) {
+
+        role = "admin";
+
+    }
+
+    // Existing role
+    else if (
+        userData.role
+    ) {
+
+        role = userData.role;
+
+    }
+
+
+    return {
+
+        ...userData,
+
+        role,
+
+        isAdmin:
+            role === "admin",
+
+    };
+
+};
+
+
+// =========================================================
+// AUTH PROVIDER
+// =========================================================
+
+export const AuthProvider = ({
+    children,
+}) => {
+
+
+    // =====================================================
     // STATE
-    // =========================
+    // =====================================================
 
-    const [user, setUser] = useState(null);
+    const [
+        user,
+        setUser,
+    ] = useState(null);
 
-    const [token, setToken] = useState(
+
+    const [
+        token,
+        setToken,
+    ] = useState(
         localStorage.getItem("token")
     );
 
-    const [loading, setLoading] = useState(true);
+
+    const [
+        loading,
+        setLoading,
+    ] = useState(true);
 
 
-    // =========================
+    // =====================================================
     // SAVE USER
-    // =========================
+    // =====================================================
 
-    const saveUser = (userData) => {
+    const saveUser = (
+        userData,
+        currentToken = null
+    ) => {
 
         const normalizedUser =
-            normalizeUser(userData);
+            normalizeUser(
+                userData,
+                currentToken || token
+            );
 
-        setUser(normalizedUser);
+
+        setUser(
+            normalizedUser
+        );
+
 
         if (normalizedUser) {
 
             localStorage.setItem(
                 "user",
-                JSON.stringify(normalizedUser)
+                JSON.stringify(
+                    normalizedUser
+                )
             );
 
         } else {
 
-            localStorage.removeItem("user");
+            localStorage.removeItem(
+                "user"
+            );
 
         }
 
+
         return normalizedUser;
+
     };
 
 
-    // =========================
-    // GET CURRENT USER
-    // =========================
+    // =====================================================
+    // LOAD CURRENT USER
+    // =====================================================
 
-    const loadUser = async (savedToken) => {
+    const loadUser = async (
+        savedToken
+    ) => {
 
         try {
 
-            const response = await axios.get(
-                `${API_URL}/auth/me`,
-                {
-                    headers: {
-                        Authorization:
-                            `Bearer ${savedToken}`,
-                    },
-                }
-            );
+            if (!savedToken) {
+
+                setUser(null);
+
+                setLoading(false);
+
+                return;
+
+            }
 
 
-            if (response.data.success) {
+            const response =
+                await axios.get(
+                    `${API_URL}/auth/me`,
+                    {
+                        headers: {
+                            Authorization:
+                                `Bearer ${savedToken}`,
+                        },
+                    }
+                );
 
-                saveUser(
-                    response.data.data
+
+            if (
+                response.data?.success
+            ) {
+
+                const currentUser =
+                    response.data.data;
+
+
+                const normalizedUser =
+                    normalizeUser(
+                        currentUser,
+                        savedToken
+                    );
+
+
+                setUser(
+                    normalizedUser
+                );
+
+
+                localStorage.setItem(
+                    "user",
+                    JSON.stringify(
+                        normalizedUser
+                    )
+                );
+
+
+                // =========================================
+                // DEBUG
+                // =========================================
+
+                console.log(
+                    "================================"
+                );
+
+                console.log(
+                    "CURRENT USER:",
+                    normalizedUser
+                );
+
+                console.log(
+                    "ROLE:",
+                    normalizedUser?.role
+                );
+
+                console.log(
+                    "IS ADMIN:",
+                    normalizedUser?.role === "admin"
+                );
+
+                console.log(
+                    "================================"
                 );
 
             } else {
 
                 throw new Error(
-                    response.data.message ||
+                    response.data?.message ||
                     "Authentication failed"
                 );
 
@@ -115,6 +309,7 @@ export const AuthProvider = ({ children }) => {
 
             console.error(
                 "Authentication failed:",
+                error?.response?.data ||
                 error
             );
 
@@ -141,19 +336,27 @@ export const AuthProvider = ({ children }) => {
     };
 
 
-    // =========================
-    // CHECK LOGIN ON APP START
-    // =========================
+    // =====================================================
+    // CHECK LOGIN WHEN APP STARTS
+    // =====================================================
 
     useEffect(() => {
 
         const savedToken =
-            localStorage.getItem("token");
+            localStorage.getItem(
+                "token"
+            );
 
 
         if (savedToken) {
 
-            loadUser(savedToken);
+            setToken(
+                savedToken
+            );
+
+            loadUser(
+                savedToken
+            );
 
         } else {
 
@@ -164,9 +367,9 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
 
-    // =========================
+    // =====================================================
     // LOGIN
-    // =========================
+    // =====================================================
 
     const login = async (
         email,
@@ -177,25 +380,26 @@ export const AuthProvider = ({ children }) => {
 
             const response =
                 await axios.post(
-
                     `${API_URL}/auth/login`,
-
                     {
-                        email,
+                        email:
+                            email.trim(),
+
                         password,
                     }
-
                 );
 
 
-            if (!response.data.success) {
+            if (
+                !response.data?.success
+            ) {
 
                 return {
 
                     success: false,
 
                     message:
-                        response.data.message ||
+                        response.data?.message ||
                         "Login failed",
 
                 };
@@ -203,28 +407,46 @@ export const AuthProvider = ({ children }) => {
             }
 
 
-            const {
-
-                token: newToken,
-
-                user: loggedInUser,
-
-            } = response.data.data;
+            const loginData =
+                response.data.data;
 
 
-            // =========================
-            // NORMALIZE ADMIN USER
-            // =========================
+            const newToken =
+                loginData?.token;
+
+
+            const loggedInUser =
+                loginData?.user;
+
+
+            if (!newToken) {
+
+                return {
+
+                    success: false,
+
+                    message:
+                        "Login token was not received.",
+
+                };
+
+            }
+
+
+            // =================================================
+            // NORMALIZE ADMIN
+            // =================================================
 
             const normalizedUser =
                 normalizeUser(
-                    loggedInUser
+                    loggedInUser,
+                    newToken
                 );
 
 
-            // =========================
+            // =================================================
             // SAVE TOKEN
-            // =========================
+            // =================================================
 
             localStorage.setItem(
                 "token",
@@ -232,9 +454,9 @@ export const AuthProvider = ({ children }) => {
             );
 
 
-            // =========================
+            // =================================================
             // SAVE USER
-            // =========================
+            // =================================================
 
             localStorage.setItem(
                 "user",
@@ -244,24 +466,49 @@ export const AuthProvider = ({ children }) => {
             );
 
 
-            // =========================
+            // =================================================
             // UPDATE STATE
-            // =========================
+            // =================================================
 
-            setToken(newToken);
+            setToken(
+                newToken
+            );
 
-            setUser(normalizedUser);
 
-
-            console.log(
-                "Logged in user:",
+            setUser(
                 normalizedUser
             );
 
 
+            // =================================================
+            // DEBUG
+            // =================================================
+
             console.log(
-                "Admin:",
+                "================================"
+            );
+
+            console.log(
+                "LOGIN SUCCESS"
+            );
+
+            console.log(
+                "USER:",
+                normalizedUser
+            );
+
+            console.log(
+                "ROLE:",
+                normalizedUser?.role
+            );
+
+            console.log(
+                "IS ADMIN:",
                 normalizedUser?.role === "admin"
+            );
+
+            console.log(
+                "================================"
             );
 
 
@@ -269,9 +516,11 @@ export const AuthProvider = ({ children }) => {
 
                 success: true,
 
-                user: normalizedUser,
+                user:
+                    normalizedUser,
 
-                token: newToken,
+                token:
+                    newToken,
 
             };
 
@@ -279,6 +528,7 @@ export const AuthProvider = ({ children }) => {
 
             console.error(
                 "Login error:",
+                error?.response?.data ||
                 error
             );
 
@@ -288,11 +538,8 @@ export const AuthProvider = ({ children }) => {
                 success: false,
 
                 message:
-                    error.response?.data
-                        ?.message ||
-
-                    error.message ||
-
+                    error?.response?.data?.message ||
+                    error?.message ||
                     "Login failed",
 
             };
@@ -302,9 +549,9 @@ export const AuthProvider = ({ children }) => {
     };
 
 
-    // =========================
+    // =====================================================
     // REGISTER
-    // =========================
+    // =====================================================
 
     const register = async (
         name,
@@ -316,26 +563,29 @@ export const AuthProvider = ({ children }) => {
 
             const response =
                 await axios.post(
-
                     `${API_URL}/auth/register`,
-
                     {
-                        name,
-                        email,
+                        name:
+                            name.trim(),
+
+                        email:
+                            email.trim(),
+
                         password,
                     }
-
                 );
 
 
-            if (!response.data.success) {
+            if (
+                !response.data?.success
+            ) {
 
                 return {
 
                     success: false,
 
                     message:
-                        response.data.message ||
+                        response.data?.message ||
                         "Registration failed",
 
                 };
@@ -343,24 +593,24 @@ export const AuthProvider = ({ children }) => {
             }
 
 
-            const {
+            const registerData =
+                response.data.data;
 
-                token: newToken,
 
-                user: newUser,
+            const newToken =
+                registerData?.token;
 
-            } = response.data.data;
+
+            const newUser =
+                registerData?.user;
 
 
             const normalizedUser =
                 normalizeUser(
-                    newUser
+                    newUser,
+                    newToken
                 );
 
-
-            // =========================
-            // SAVE TOKEN
-            // =========================
 
             localStorage.setItem(
                 "token",
@@ -376,22 +626,25 @@ export const AuthProvider = ({ children }) => {
             );
 
 
-            // =========================
-            // UPDATE STATE
-            // =========================
+            setToken(
+                newToken
+            );
 
-            setToken(newToken);
 
-            setUser(normalizedUser);
+            setUser(
+                normalizedUser
+            );
 
 
             return {
 
                 success: true,
 
-                user: normalizedUser,
+                user:
+                    normalizedUser,
 
-                token: newToken,
+                token:
+                    newToken,
 
             };
 
@@ -399,6 +652,7 @@ export const AuthProvider = ({ children }) => {
 
             console.error(
                 "Register error:",
+                error?.response?.data ||
                 error
             );
 
@@ -408,11 +662,8 @@ export const AuthProvider = ({ children }) => {
                 success: false,
 
                 message:
-                    error.response?.data
-                        ?.message ||
-
-                    error.message ||
-
+                    error?.response?.data?.message ||
+                    error?.message ||
                     "Registration failed",
 
             };
@@ -422,9 +673,9 @@ export const AuthProvider = ({ children }) => {
     };
 
 
-    // =========================
+    // =====================================================
     // LOGOUT
-    // =========================
+    // =====================================================
 
     const logout = () => {
 
@@ -444,9 +695,9 @@ export const AuthProvider = ({ children }) => {
     };
 
 
-    // =========================
-    // CONTEXT PROVIDER
-    // =========================
+    // =====================================================
+    // PROVIDER
+    // =====================================================
 
     return (
 
@@ -471,9 +722,9 @@ export const AuthProvider = ({ children }) => {
 };
 
 
-// =========================
-// CUSTOM HOOK
-// =========================
+// =========================================================
+// USE AUTH
+// =========================================================
 
 export const useAuth = () => {
 
