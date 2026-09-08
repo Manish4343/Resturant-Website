@@ -1,21 +1,158 @@
+/* =========================================================
+   SWAAD & SPICE
+   GLOBAL APP STYLES
+   ========================================================= */
+
+/* =========================================================
+   GLOBAL RESET
+   ========================================================= */
+
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
+
+/* =========================================================
+   HTML
+   ========================================================= */
+
+html {
+    scroll-behavior: smooth;
+}
+
+
+/* =========================================================
+   BODY
+   ========================================================= */
+
+body {
+    margin: 0;
+    padding: 0;
+
+    font-family:
+        "Poppins",
+        sans-serif;
+
+    background: #fffaf3;
+
+    color: #211b16;
+
+    overflow-x: hidden;
+}
+
+
+/* =========================================================
+   ROOT
+   ========================================================= */
+
+#root {
+    min-height: 100vh;
+}
+
+
+/* =========================================================
+   MAIN APP WRAPPER
+   ---------------------------------------------------------
+   IMPORTANT:
+   Do NOT put any page background image here.
+
+   Every page should control its own background.
+   ========================================================= */
+
 .page {
     min-height: 100vh;
-     padding-top: 110px;
 
-    background-image: 
-     linear-gradient(
-            rgba(0, 0, 0, 0.35),
-            rgba(0, 0, 0, 0.35)
-        ),
-    url("https://images.unsplash.com/photo-1690983322857-0811d47fedfc?fm=jpg&q=60&w=3000&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTN8fG1lbnUlMjBiYWNrZ3JvdW5kfGVufDB8fDB8fHww");
+    background: #fffaf3;
 
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
+    color: #211b16;
+}
+
+
+/* =========================================================
+   IMAGES
+   ========================================================= */
+
+img {
+    max-width: 100%;
+    display: block;
+}
+
+
+/* =========================================================
+   BUTTONS
+   ========================================================= */
+
+button {
+    font-family: inherit;
+}
+
+
+/* =========================================================
+   LINKS
+   ========================================================= */
+
+a {
+    text-decoration: none;
+}
+
+
+/* =========================================================
+   TEXT SELECTION
+   ========================================================= */
+
+::selection {
+    background: #d8b477;
+    color: #211b16;
+}
+
+
+/* =========================================================
+   SCROLLBAR
+   ========================================================= */
+
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f2eadf;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #b8872d;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #8f641f;
+}
+
+
+/* =========================================================
+   ACCESSIBILITY
+   ========================================================= */
+
+button:focus-visible,
+a:focus-visible {
+    outline: 3px solid rgba(184, 135, 45, 0.35);
+    outline-offset: 3px;
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+    #root {
+        width: 100%;
+    }
+
+    .page {
+        min-height: 100vh;
+    }
+
 }

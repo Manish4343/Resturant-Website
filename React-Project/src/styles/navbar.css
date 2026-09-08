@@ -1,37 +1,41 @@
 /* =========================================================
    SWAAD & SPICE
    PREMIUM RESTAURANT NAVBAR
-   ========================================================= */
+========================================================= */
 
 
 /* =========================================================
    NAVBAR
-   ========================================================= */
+========================================================= */
 
 .navbar {
     position: fixed;
+
     top: 18px;
     left: 50%;
+
     transform: translateX(-50%);
 
-    width: min(1400px, 94%);
+    width: min(1240px, 92%);
+
     min-height: 68px;
 
     padding: 10px 18px 10px 24px;
 
     display: flex;
     align-items: center;
+    justify-content: space-between;
 
-    gap: 18px;
+    gap: 25px;
 
-    background: rgba(31, 20, 14, 0.86);
+    background: rgba(31, 20, 14, 0.92);
 
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
 
     border: 1px solid rgba(216, 180, 119, 0.22);
 
-    border-radius: 6px;
+    border-radius: 8px;
 
     box-shadow:
         0 12px 40px rgba(0, 0, 0, 0.28);
@@ -42,18 +46,19 @@
         top 0.3s ease,
         background 0.3s ease,
         box-shadow 0.3s ease,
-        border-color 0.3s ease;
+        border-color 0.3s ease,
+        width 0.3s ease;
 }
 
 
 /* =========================================================
-   SCROLLED NAVBAR
-   ========================================================= */
+   SCROLLED
+========================================================= */
 
 .navbar.navbar-scrolled {
     top: 10px;
 
-    background: rgba(25, 15, 10, 0.96);
+    background: rgba(25, 15, 10, 0.97);
 
     border-color: rgba(216, 180, 119, 0.35);
 
@@ -64,15 +69,16 @@
 
 /* =========================================================
    LOGO
-   ========================================================= */
+========================================================= */
 
 .logo {
     display: flex;
+
     align-items: center;
 
-    gap: 10px;
+    gap: 11px;
 
-    min-width: 190px;
+    min-width: max-content;
 
     color: #ffffff;
 
@@ -81,8 +87,6 @@
     user-select: none;
 
     outline: none;
-
-    flex-shrink: 0;
 }
 
 
@@ -95,11 +99,11 @@
     width: 35px;
     height: 35px;
 
-    flex-shrink: 0;
-
     border: 1px solid #c59b5c;
 
     border-radius: 50%;
+
+    background: rgba(216, 180, 119, 0.05);
 
     color: #d8b477;
 
@@ -114,8 +118,7 @@
 .logo:hover .logo-icon {
     transform: rotate(90deg);
 
-    background:
-        rgba(216, 180, 119, 0.08);
+    background: rgba(216, 180, 119, 0.12);
 }
 
 
@@ -141,8 +144,6 @@
     font-weight: 500;
 
     letter-spacing: 0.3px;
-
-    white-space: nowrap;
 }
 
 
@@ -154,40 +155,29 @@
     font-weight: 700;
 
     letter-spacing: 2px;
-
-    white-space: nowrap;
 }
 
 
 /* =========================================================
    DESKTOP NAVIGATION
-   ========================================================= */
+========================================================= */
 
 .nav-links {
     display: flex;
 
     align-items: center;
 
-    justify-content: center;
-
-    gap: 20px;
+    gap: 27px;
 
     margin: 0;
-
     padding: 0;
 
     list-style: none;
-
-    flex: 1;
-
-    min-width: 0;
 }
 
 
 .nav-links li {
     position: relative;
-
-    flex-shrink: 0;
 }
 
 
@@ -198,8 +188,7 @@
 
     padding: 10px 0;
 
-    color:
-        rgba(255, 255, 255, 0.82);
+    color: rgba(255, 255, 255, 0.82);
 
     text-decoration: none;
 
@@ -207,9 +196,7 @@
 
     font-weight: 600;
 
-    letter-spacing: 0.4px;
-
-    white-space: nowrap;
+    letter-spacing: 0.6px;
 
     transition:
         color 0.3s ease;
@@ -258,26 +245,20 @@
 
 /* =========================================================
    RIGHT SIDE
-   ========================================================= */
+========================================================= */
 
 .navbar-actions {
     display: flex;
 
     align-items: center;
 
-    justify-content: flex-end;
-
     gap: 7px;
-
-    flex-shrink: 0;
-
-    white-space: nowrap;
 }
 
 
 /* =========================================================
    USER SECTION
-   ========================================================= */
+========================================================= */
 
 .user-section {
     display: flex;
@@ -285,8 +266,6 @@
     align-items: center;
 
     gap: 6px;
-
-    flex-shrink: 0;
 }
 
 
@@ -295,14 +274,13 @@
 
     align-items: center;
 
-    gap: 7px;
+    gap: 8px;
 
-    margin-right: 3px;
+    margin-right: 4px;
 
-    color:
-        rgba(255, 255, 255, 0.9);
+    color: rgba(255, 255, 255, 0.88);
 
-    font-size: 11px;
+    font-size: 12px;
 
     font-weight: 600;
 
@@ -319,15 +297,11 @@
     width: 31px;
     height: 31px;
 
-    flex-shrink: 0;
-
-    border:
-        1px solid rgba(216, 180, 119, 0.6);
+    border: 1px solid rgba(216, 180, 119, 0.6);
 
     border-radius: 50%;
 
-    background:
-        rgba(216, 180, 119, 0.12);
+    background: rgba(216, 180, 119, 0.12);
 
     color: #d8b477;
 
@@ -339,30 +313,28 @@
 
 /* =========================================================
    BUTTON BASE
-   ========================================================= */
+========================================================= */
 
 .login-btn,
 .my-orders-btn,
+.my-reservations-btn,
 .admin-btn,
-.admin-reservation-btn,
 .logout-btn {
     min-height: 36px;
 
-    padding: 8px 11px;
+    padding: 8px 12px;
 
-    border-radius: 3px;
+    border-radius: 6px;
 
-    font-size: 10px;
+    font-family: inherit;
+
+    font-size: 11px;
 
     font-weight: 700;
 
-    letter-spacing: 0.35px;
-
-    white-space: nowrap;
+    letter-spacing: 0.3px;
 
     cursor: pointer;
-
-    flex-shrink: 0;
 
     transition:
         transform 0.25s ease,
@@ -375,11 +347,10 @@
 
 /* =========================================================
    LOGIN
-   ========================================================= */
+========================================================= */
 
 .login-btn {
-    border:
-        1px solid rgba(216, 180, 119, 0.55);
+    border: 1px solid rgba(216, 180, 119, 0.55);
 
     background: transparent;
 
@@ -394,65 +365,83 @@
 
     color: #24170f;
 
-    transform:
-        translateY(-2px);
+    transform: translateY(-2px);
 
     box-shadow:
-        0 7px 18px
-        rgba(197, 155, 92, 0.18);
+        0 7px 18px rgba(197, 155, 92, 0.18);
 }
 
 
 /* =========================================================
    MY ORDERS
-   ========================================================= */
+========================================================= */
 
 .my-orders-btn {
-    border:
-        1px solid rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.18);
 
-    background:
-        rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.07);
 
-    color:
-        rgba(255, 255, 255, 0.85);
+    color: rgba(255, 255, 255, 0.86);
 }
 
 
 .my-orders-btn:hover {
-    border-color:
-        rgba(216, 180, 119, 0.5);
+    border-color: rgba(216, 180, 119, 0.5);
 
-    background:
-        rgba(216, 180, 119, 0.1);
+    background: rgba(216, 180, 119, 0.12);
 
     color: #d8b477;
 
-    transform:
-        translateY(-2px);
+    transform: translateY(-2px);
 }
 
 
 /* =========================================================
-   ADMIN PANEL
-   ========================================================= */
+   MY RESERVATIONS
+   SAME STYLE AS MY ORDERS
+========================================================= */
+
+.my-reservations-btn {
+    border: 1px solid rgba(255, 255, 255, 0.18);
+
+    background: rgba(255, 255, 255, 0.07);
+
+    color: rgba(255, 255, 255, 0.86);
+}
+
+
+.my-reservations-btn:hover {
+    border-color: rgba(216, 180, 119, 0.5);
+
+    background: rgba(216, 180, 119, 0.12);
+
+    color: #d8b477;
+
+    transform: translateY(-2px);
+}
+
+
+/* ACTIVE MY RESERVATIONS */
+
+.my-reservations-btn.active {
+    border-color: rgba(216, 180, 119, 0.55);
+
+    background: rgba(216, 180, 119, 0.13);
+
+    color: #d8b477;
+}
+
+
+/* =========================================================
+   ADMIN
+========================================================= */
 
 .admin-btn {
-    border:
-        1px solid rgba(216, 180, 119, 0.65);
+    border: 1px solid rgba(216, 180, 119, 0.35);
 
-    background:
-        linear-gradient(
-            135deg,
-            rgba(216, 180, 119, 0.20),
-            rgba(197, 155, 92, 0.08)
-        );
+    background: rgba(216, 180, 119, 0.1);
 
-    color: #f0c978;
-
-    box-shadow:
-        0 4px 14px
-        rgba(216, 180, 119, 0.08);
+    color: #d8b477;
 }
 
 
@@ -463,56 +452,21 @@
 
     color: #24170f;
 
-    transform:
-        translateY(-2px);
+    transform: translateY(-2px);
 
     box-shadow:
-        0 8px 20px
-        rgba(216, 180, 119, 0.22);
-}
-
-
-/* =========================================================
-   ADMIN RESERVATIONS
-   ========================================================= */
-
-.admin-reservation-btn {
-    border:
-        1px solid rgba(72, 180, 130, 0.40);
-
-    background:
-        rgba(72, 180, 130, 0.10);
-
-    color:
-        #8ee0b8;
-}
-
-
-.admin-reservation-btn:hover {
-    background:
-        rgba(72, 180, 130, 0.20);
-
-    border-color:
-        rgba(72, 180, 130, 0.70);
-
-    color:
-        #b8f2d3;
-
-    transform:
-        translateY(-2px);
+        0 7px 18px rgba(216, 180, 119, 0.18);
 }
 
 
 /* =========================================================
    LOGOUT
-   ========================================================= */
+========================================================= */
 
 .logout-btn {
-    border:
-        1px solid rgba(220, 80, 60, 0.35);
+    border: 1px solid rgba(220, 80, 60, 0.35);
 
-    background:
-        rgba(220, 80, 60, 0.08);
+    background: rgba(220, 80, 60, 0.08);
 
     color: #e8a49a;
 }
@@ -525,14 +479,13 @@
 
     color: #ffffff;
 
-    transform:
-        translateY(-2px);
+    transform: translateY(-2px);
 }
 
 
 /* =========================================================
    CART
-   ========================================================= */
+========================================================= */
 
 .order-btn {
     position: relative;
@@ -540,32 +493,32 @@
     display: flex;
 
     align-items: center;
+
     justify-content: center;
 
     gap: 7px;
 
     min-height: 38px;
 
-    padding: 0 14px;
+    padding: 0 16px;
 
-    border:
-        1px solid #c59b5c;
+    border: 1px solid #c59b5c;
 
-    border-radius: 3px;
+    border-radius: 6px;
 
     background: #c59b5c;
 
     color: #24170f;
 
+    font-family: inherit;
+
     font-size: 11px;
 
     font-weight: 800;
 
-    letter-spacing: 0.5px;
+    letter-spacing: 0.6px;
 
     cursor: pointer;
-
-    flex-shrink: 0;
 
     transition:
         transform 0.3s ease,
@@ -577,12 +530,10 @@
 .order-btn:hover {
     background: #e0bd80;
 
-    transform:
-        translateY(-2px);
+    transform: translateY(-2px);
 
     box-shadow:
-        0 8px 22px
-        rgba(197, 155, 92, 0.25);
+        0 8px 22px rgba(197, 155, 92, 0.25);
 }
 
 
@@ -598,7 +549,7 @@
 
 /* =========================================================
    CART COUNT
-   ========================================================= */
+========================================================= */
 
 .cart-count {
     position: absolute;
@@ -616,8 +567,7 @@
 
     padding: 0 4px;
 
-    border:
-        2px solid #24170f;
+    border: 2px solid #24170f;
 
     border-radius: 50%;
 
@@ -632,14 +582,13 @@
     line-height: 1;
 
     box-shadow:
-        0 3px 10px
-        rgba(0, 0, 0, 0.25);
+        0 3px 10px rgba(0, 0, 0, 0.25);
 }
 
 
 /* =========================================================
    MOBILE TOGGLE
-   ========================================================= */
+========================================================= */
 
 .menu-toggle {
     display: none;
@@ -656,17 +605,13 @@
 
     padding: 0;
 
-    border:
-        1px solid rgba(216, 180, 119, 0.35);
+    border: 1px solid rgba(216, 180, 119, 0.35);
 
-    border-radius: 3px;
+    border-radius: 6px;
 
-    background:
-        rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.05);
 
     cursor: pointer;
-
-    flex-shrink: 0;
 }
 
 
@@ -686,7 +631,7 @@
 
 /* =========================================================
    HAMBURGER → X
-   ========================================================= */
+========================================================= */
 
 .menu-open .menu-toggle span:nth-child(1) {
     transform:
@@ -709,7 +654,7 @@
 
 /* =========================================================
    MOBILE MENU
-   ========================================================= */
+========================================================= */
 
 .mobile-menu {
     display: none;
@@ -717,38 +662,27 @@
 
 
 /* =========================================================
-   MEDIUM DESKTOP
-   ========================================================= */
+   TABLET
+========================================================= */
 
-@media (max-width: 1250px) {
+@media (max-width: 1100px) {
 
     .navbar {
-        width: 96%;
+        width: 94%;
 
-        padding-left: 16px;
-        padding-right: 14px;
+        padding-left: 18px;
 
-        gap: 12px;
-    }
-
-
-    .logo {
-        min-width: 170px;
-    }
-
-
-    .logo-text strong {
-        font-size: 17px;
+        gap: 15px;
     }
 
 
     .nav-links {
-        gap: 13px;
+        gap: 18px;
     }
 
 
     .nav-links a {
-        font-size: 11px;
+        font-size: 12px;
     }
 
 
@@ -757,81 +691,32 @@
     }
 
 
+    .navbar-actions {
+        gap: 5px;
+    }
+
+
     .login-btn,
     .my-orders-btn,
+    .my-reservations-btn,
     .admin-btn,
-    .admin-reservation-btn,
     .logout-btn {
-        padding: 7px 8px;
+        padding: 8px 9px;
 
-        font-size: 9px;
-    }
-
-
-    .order-btn {
-        padding: 0 10px;
-    }
-}
-
-
-/* =========================================================
-   TABLET
-   ========================================================= */
-
-@media (max-width: 1050px) {
-
-    .navbar {
-        width: 96%;
-    }
-
-
-    .logo {
-        min-width: 160px;
-    }
-
-
-    .nav-links {
-        gap: 10px;
-    }
-
-
-    .nav-links a {
         font-size: 10px;
     }
 
 
-    .navbar-actions {
-        gap: 4px;
-    }
-
-
-    .login-btn,
-    .my-orders-btn,
-    .admin-btn,
-    .admin-reservation-btn,
-    .logout-btn {
-        padding: 7px 7px;
-
-        font-size: 8.5px;
-    }
-
-
     .order-btn {
-        min-height: 35px;
-
-        padding: 0 8px;
+        padding: 0 12px;
     }
 
-
-    .cart-text {
-        font-size: 9px;
-    }
 }
 
 
 /* =========================================================
    MOBILE
-   ========================================================= */
+========================================================= */
 
 @media (max-width: 800px) {
 
@@ -844,9 +729,7 @@
 
         padding: 9px 12px;
 
-        border-radius: 5px;
-
-        gap: 8px;
+        border-radius: 8px;
     }
 
 
@@ -866,8 +749,6 @@
 
     .navbar-actions {
         margin-left: auto;
-
-        gap: 6px;
     }
 
 
@@ -900,7 +781,7 @@
 
     /* =====================================================
        MOBILE DROPDOWN
-       ===================================================== */
+    ===================================================== */
 
     .mobile-menu {
         position: absolute;
@@ -919,28 +800,23 @@
 
         padding: 10px;
 
-        background:
-            rgba(31, 20, 14, 0.98);
+        background: rgba(31, 20, 14, 0.98);
 
         backdrop-filter: blur(20px);
-
         -webkit-backdrop-filter: blur(20px);
 
-        border:
-            1px solid rgba(216, 180, 119, 0.2);
+        border: 1px solid rgba(216, 180, 119, 0.2);
 
-        border-radius: 5px;
+        border-radius: 8px;
 
         box-shadow:
-            0 20px 40px
-            rgba(0, 0, 0, 0.35);
+            0 20px 40px rgba(0, 0, 0, 0.35);
 
         opacity: 0;
 
         visibility: hidden;
 
-        transform:
-            translateY(-10px);
+        transform: translateY(-10px);
 
         transition:
             opacity 0.3s ease,
@@ -954,8 +830,7 @@
 
         visibility: visible;
 
-        transform:
-            translateY(0);
+        transform: translateY(0);
     }
 
 
@@ -968,13 +843,11 @@
         border: none;
 
         border-bottom:
-            1px solid
-            rgba(255, 255, 255, 0.06);
+            1px solid rgba(255, 255, 255, 0.06);
 
         background: transparent;
 
-        color:
-            rgba(255, 255, 255, 0.82);
+        color: rgba(255, 255, 255, 0.86);
 
         text-align: left;
 
@@ -1001,8 +874,7 @@
     .mobile-menu button:hover {
         padding-left: 22px;
 
-        background:
-            rgba(216, 180, 119, 0.08);
+        background: rgba(216, 180, 119, 0.08);
 
         color: #d8b477;
     }
@@ -1011,29 +883,12 @@
     .mobile-menu a.active {
         color: #d8b477;
 
-        background:
-            rgba(216, 180, 119, 0.08);
+        background: rgba(216, 180, 119, 0.08);
     }
 
 
-    /* =====================================================
-       MOBILE ADMIN
-       ===================================================== */
-
-    .mobile-admin-btn {
-        border-left:
-            3px solid #d8b477 !important;
-
-        background:
-            rgba(216, 180, 119, 0.10) !important;
-
-        color:
-            #f0c978 !important;
-    }
-
-
-    .mobile-logout {
-        color: #e8a49a !important;
+    .mobile-menu button:last-child {
+        border-bottom: none;
     }
 
 
@@ -1044,8 +899,12 @@
         background:
             rgba(216, 180, 119, 0.08) !important;
 
-        color:
-            #d8b477 !important;
+        color: #d8b477 !important;
+    }
+
+
+    .mobile-logout {
+        color: #e8a49a !important;
     }
 
 
@@ -1067,12 +926,13 @@
 
         border-color: #2a1b14;
     }
+
 }
 
 
 /* =========================================================
    SMALL MOBILE
-   ========================================================= */
+========================================================= */
 
 @media (max-width: 480px) {
 
@@ -1085,11 +945,6 @@
 
     .navbar.navbar-scrolled {
         top: 6px;
-    }
-
-
-    .logo {
-        min-width: auto;
     }
 
 
@@ -1106,22 +961,23 @@
 
 
     .logo-icon {
-        width: 31px;
-        height: 31px;
+        width: 32px;
+        height: 32px;
 
-        font-size: 14px;
+        font-size: 15px;
     }
 
 
     .order-btn {
-        min-width: 40px;
+        min-height: 38px;
 
         padding: 0 10px;
     }
 
 
     .menu-toggle {
-        width: 40px;
-        height: 40px;
+        width: 39px;
+        height: 39px;
     }
+
 }

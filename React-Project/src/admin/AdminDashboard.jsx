@@ -1,9 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+    useCallback,
+    useEffect,
+    useMemo,
+    useState,
+} from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import "../styles/admin.css";
 
-const API_URL = "http://localhost:5000/api";
+const API_URL =
+    import.meta.env.VITE_API_URL ||
+    "http://localhost:5000/api";
 
 const STATUS_OPTIONS = [
     {
@@ -39,248 +47,670 @@ const STATUS_OPTIONS = [
 ];
 
 const formatCurrency = (value) =>
-    `₹${Number(value || 0).toLocaleString("en-IN", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    })}`;
+    `₹${Number(value || 0).toLocaleString(
+        "en-IN",
+        {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        }
+    )}`;
 
 const formatStatus = (status) =>
     String(status || "")
         .replaceAll("_", " ")
         .toLowerCase()
-        .replace(/\b\w/g, (letter) => letter.toUpperCase());
+        .replace(/\b\w/g, (letter) =>
+            letter.toUpperCase()
+        );
 
 const getStatusClass = (status) =>
     String(status || "")
         .toLowerCase()
         .replaceAll("_", "-");
 
+const getCustomerName = (order) =>
+    order?.customer?.name ||
+    order?.user?.name ||
+    "Customer";
+
+const getCustomerPhone = (order) =>
+    order?.customer?.phone ||
+    order?.user?.phone ||
+    "—";
+
+const getCustomerEmail = (order) =>
+    order?.customer?.email ||
+    order?.user?.email ||
+    "—";
+
+const getCustomerAddress = (order) =>
+    order?.customer?.address ||
+    order?.deliveryAddress ||
+    order?.address ||
+    "—";
+
+const getSpecialInstructions = (order) =>
+    order?.customer?.instructions ||
+    order?.instructions ||
+    "";
+
+const getOrderStatus = (order) =>
+    String(
+        order?.orderStatus ||
+            order?.status ||
+            "PLACED"
+    ).toUpperCase();
+
+const getApiError = (error, fallback) =>
+    error?.response?.data?.message ||
+    error?.response?.data?.error ||
+    error?.message ||
+    fallback;
+
 function AdminDashboard() {
-    const { user } = useAuth();
+    const {
+        user,
+        loading: authLoading,
+    } = useAuth();
 
-    const [orders, setOrders] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [refreshing, setRefreshing] = useState(false);
-    const [error, setError] = useState("");
-    const [updatingOrder, setUpdatingOrder] = useState(null);
+    const navigate = useNavigate();
 
-    const [search, setSearch] = useState("");
-    const [statusFilter, setStatusFilter] = useState("ALL");
+    const [orders, setOrders] =
+        useState([]);
 
-    const getToken = () =>
-        localStorage.getItem("token");
+    const [loading, setLoading] =
+        useState(true);
 
-    // ==========================================
-    // FETCH ORDERS
-    // ==========================================
+    const [refreshing, setRefreshing] =
+        useState(false);
 
-    const fetchOrders = async (showRefresh = false) => {
-        try {
-            if (showRefresh) {
-                setRefreshing(true);
-            } else {
-                setLoading(true);
-            }
+    const [error, setError] =
+        useState("");
 
-            setError("");
+    const [updatingOrder, setUpdatingOrder] =
+        useState(null);
 
-            const token = getToken();
+    const [search, setSearch] =
+        useState("");
 
-            if (!token) {
-                setError("Please login as admin.");
-                return;
-            }
+    const [statusFilter, setStatusFilter] =
+        useState("ALL");
 
-            const response = await axios.get(
-                `${API_URL}/orders`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
+    const [successMessage, setSuccessMessage] =
+        useState("");
+
+    /* =========================================================
+       TOKEN
+    ========================================================= */
+
+    const getToken = useCallback(() => {
+        return localStorage.getItem("token");
+    }, []);
+
+    /* =========================================================
+       FETCH ORDERS
+    ========================================================= */
+
+    const fetchOrders = useCallback(
+        async (showRefresh = false) => {
+            try {
+                if (showRefresh) {
+                    setRefreshing(true);
+                } else {
+                    setLoading(true);
                 }
+
+                setError("");
+
+                const token = getToken();
+
+                if (!token) {
+                    setError(
+                        "Please login as admin."
+                    );
+
+                    setOrders([]);
+
+                    return;
+                }
+
+                const response =
+                    await axios.get(
+                        `${API_URL}/orders`,
+                        {
+                            headers: {
+                                Authorization:
+                                    `Bearer ${token}`,
+                            },
+                        }
+                    );
+
+                console.log(
+                    "========================================"
+                );
+
+                console.log(
+                    "ADMIN ORDERS API RESPONSE:",
+                    response?.data
+                );
+
+                console.log(
+                    "========================================"
+                );
+
+                const responseData =
+                    response?.data;
+
+                /*
+                 * Supported backend responses:
+                 *
+                 * 1.
+                 * {
+                 *   success: true,
+                 *   data: [...]
+                 * }
+                 *
+                 * 2.
+                 * {
+                 *   success: true,
+                 *   orders: [...]
+                 * }
+                 *
+                 * 3.
+                 * [...]
+                 */
+
+                let orderList = [];
+
+                if (
+                    Array.isArray(
+                        responseData
+                    )
+                ) {
+                    orderList =
+                        responseData;
+                } else if (
+                    Array.isArray(
+                        responseData?.data
+                    )
+                ) {
+                    orderList =
+                        responseData.data;
+                } else if (
+                    Array.isArray(
+                        responseData?.orders
+                    )
+                ) {
+                    orderList =
+                        responseData.orders;
+                }
+
+                /*
+                 * Normalize status so frontend
+                 * always works with orderStatus.
+                 */
+
+                const normalizedOrders =
+                    orderList.map(
+                        (order) => ({
+                            ...order,
+
+                            orderStatus:
+                                getOrderStatus(
+                                    order
+                                ),
+                        })
+                    );
+
+                console.log(
+                    "ADMIN ORDERS LIST:",
+                    normalizedOrders
+                );
+
+                console.log(
+                    "TOTAL ORDERS:",
+                    normalizedOrders.length
+                );
+
+                setOrders(
+                    normalizedOrders
+                );
+            } catch (err) {
+                console.error(
+                    "Fetch orders error:",
+                    err
+                );
+
+                if (
+                    err?.response?.status ===
+                    401
+                ) {
+                    setError(
+                        "Your admin session has expired. Please login again."
+                    );
+                } else if (
+                    err?.response?.status ===
+                    403
+                ) {
+                    setError(
+                        "You do not have administrator access."
+                    );
+                } else {
+                    setError(
+                        getApiError(
+                            err,
+                            "Failed to load orders."
+                        )
+                    );
+                }
+
+                setOrders([]);
+            } finally {
+                setLoading(false);
+                setRefreshing(false);
+            }
+        },
+        [getToken]
+    );
+
+    /* =========================================================
+       AUTH + INITIAL LOAD
+    ========================================================= */
+
+    useEffect(() => {
+        if (authLoading) {
+            return;
+        }
+
+        if (!user) {
+            navigate("/login", {
+                replace: true,
+            });
+
+            return;
+        }
+
+        if (user.role !== "admin") {
+            return;
+        }
+
+        fetchOrders();
+    }, [
+        authLoading,
+        user,
+        navigate,
+        fetchOrders,
+    ]);
+
+    /* =========================================================
+       SUCCESS MESSAGE
+    ========================================================= */
+
+    useEffect(() => {
+        if (!successMessage) {
+            return;
+        }
+
+        const timer =
+            setTimeout(() => {
+                setSuccessMessage("");
+            }, 3500);
+
+        return () => {
+            clearTimeout(timer);
+        };
+    }, [successMessage]);
+
+    /* =========================================================
+       UPDATE ORDER STATUS
+    ========================================================= */
+
+    const updateStatus = async (
+        orderId,
+        status
+    ) => {
+        if (!orderId || !status) {
+            return;
+        }
+
+        const currentOrder =
+            orders.find(
+                (order) =>
+                    order._id === orderId
             );
 
-            setOrders(response.data?.data || []);
-        } catch (err) {
-            console.error("Fetch orders error:", err);
+        const currentStatus =
+            getOrderStatus(
+                currentOrder
+            );
 
-            if (err.response?.status === 401) {
-                setError(
-                    "Your admin session has expired. Please login again."
-                );
-            } else if (err.response?.status === 403) {
-                setError(
-                    "You do not have administrator access."
-                );
-            } else {
-                setError(
-                    err.response?.data?.message ||
-                    "Failed to load orders."
-                );
-            }
-        } finally {
-            setLoading(false);
-            setRefreshing(false);
+        if (
+            currentStatus === status
+        ) {
+            return;
         }
-    };
-
-    // ==========================================
-    // UPDATE STATUS
-    // ==========================================
-
-    const updateStatus = async (orderId, status) => {
-        if (!orderId || !status) return;
 
         if (status === "CANCELLED") {
-            const confirmed = window.confirm(
-                "Are you sure you want to cancel this order?"
-            );
+            const confirmed =
+                window.confirm(
+                    "Are you sure you want to cancel this order?"
+                );
 
-            if (!confirmed) return;
+            if (!confirmed) {
+                return;
+            }
         }
 
         try {
             setUpdatingOrder(orderId);
 
-            const token = getToken();
+            setError("");
 
-            await axios.patch(
-                `${API_URL}/orders/${orderId}/status`,
-                { status },
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
+            const token =
+                getToken();
+
+            if (!token) {
+                throw new Error(
+                    "Authentication token not found."
+                );
+            }
+
+            const response =
+                await axios.patch(
+                    `${API_URL}/orders/${orderId}/status`,
+                    {
+                        status,
                     },
-                }
+                    {
+                        headers: {
+                            Authorization:
+                                `Bearer ${token}`,
+                        },
+                    }
+                );
+
+            console.log(
+                "UPDATE ORDER RESPONSE:",
+                response?.data
             );
 
-            setOrders((currentOrders) =>
-                currentOrders.map((order) =>
-                    order._id === orderId
-                        ? {
-                              ...order,
-                              orderStatus: status,
-                          }
-                        : order
-                )
+            /*
+             * Optimistic local update.
+             */
+
+            setOrders(
+                (currentOrders) =>
+                    currentOrders.map(
+                        (order) =>
+                            order._id ===
+                            orderId
+                                ? {
+                                      ...order,
+                                      orderStatus:
+                                          status,
+                                  }
+                                : order
+                    )
             );
+
+            const statusLabel =
+                STATUS_OPTIONS.find(
+                    (item) =>
+                        item.value ===
+                        status
+                )?.label ||
+                formatStatus(status);
+
+            setSuccessMessage(
+                `Order #${String(
+                    orderId
+                )
+                    .slice(-8)
+                    .toUpperCase()} updated to ${statusLabel}.`
+            );
+
+            /*
+             * Fetch again from database
+             * so frontend stays synchronized.
+             */
+
+            await fetchOrders();
         } catch (err) {
             console.error(
                 "Update status error:",
                 err
             );
 
-            alert(
-                err.response?.data?.message ||
-                "Failed to update order status."
+            if (
+                err?.response?.status ===
+                401
+            ) {
+                setError(
+                    "Your admin session has expired. Please login again."
+                );
+
+                return;
+            }
+
+            if (
+                err?.response?.status ===
+                403
+            ) {
+                setError(
+                    "You do not have administrator access."
+                );
+
+                return;
+            }
+
+            setError(
+                getApiError(
+                    err,
+                    "Failed to update order status."
+                )
             );
         } finally {
             setUpdatingOrder(null);
         }
     };
 
-    // ==========================================
-    // LOAD
-    // ==========================================
-
-    useEffect(() => {
-        if (user?.role === "admin") {
-            fetchOrders();
-        }
-    }, [user]);
-
-    // ==========================================
-    // STATS
-    // ==========================================
+    /* =========================================================
+       STATS
+    ========================================================= */
 
     const stats = useMemo(() => {
-        const deliveredOrders = orders.filter(
-            (order) =>
-                order.orderStatus === "DELIVERED"
-        );
+        const normalizedOrders =
+            orders.map((order) => ({
+                ...order,
+                orderStatus:
+                    getOrderStatus(
+                        order
+                    ),
+            }));
 
-        const activeOrders = orders.filter(
-            (order) =>
-                [
-                    "CONFIRMED",
-                    "PREPARING",
-                    "OUT_FOR_DELIVERY",
-                ].includes(order.orderStatus)
-        );
+        const deliveredOrders =
+            normalizedOrders.filter(
+                (order) =>
+                    order.orderStatus ===
+                    "DELIVERED"
+            );
 
-        const cancelledOrders = orders.filter(
-            (order) =>
-                order.orderStatus === "CANCELLED"
-        );
+        const activeOrders =
+            normalizedOrders.filter(
+                (order) =>
+                    [
+                        "CONFIRMED",
+                        "PREPARING",
+                        "OUT_FOR_DELIVERY",
+                    ].includes(
+                        order.orderStatus
+                    )
+            );
 
-        const pendingOrders = orders.filter(
-            (order) =>
-                order.orderStatus === "PLACED"
-        );
+        const cancelledOrders =
+            normalizedOrders.filter(
+                (order) =>
+                    order.orderStatus ===
+                    "CANCELLED"
+            );
 
-        const revenue = deliveredOrders.reduce(
-            (total, order) =>
-                total +
-                Number(order.totalAmount || 0),
-            0
-        );
+        const pendingOrders =
+            normalizedOrders.filter(
+                (order) =>
+                    order.orderStatus ===
+                    "PLACED"
+            );
+
+        const revenue =
+            deliveredOrders.reduce(
+                (
+                    total,
+                    order
+                ) =>
+                    total +
+                    Number(
+                        order.totalAmount ||
+                            0
+                    ),
+                0
+            );
 
         return {
-            total: orders.length,
-            pending: pendingOrders.length,
-            active: activeOrders.length,
-            delivered: deliveredOrders.length,
-            cancelled: cancelledOrders.length,
+            total:
+                normalizedOrders.length,
+
+            pending:
+                pendingOrders.length,
+
+            active:
+                activeOrders.length,
+
+            delivered:
+                deliveredOrders.length,
+
+            cancelled:
+                cancelledOrders.length,
+
             revenue,
         };
     }, [orders]);
 
-    // ==========================================
-    // FILTER ORDERS
-    // ==========================================
+    /* =========================================================
+       FILTER ORDERS
+    ========================================================= */
 
-    const filteredOrders = useMemo(() => {
-        const query = search.trim().toLowerCase();
+    const filteredOrders =
+        useMemo(() => {
+            const query =
+                search
+                    .trim()
+                    .toLowerCase();
 
-        return orders.filter((order) => {
-            const matchesStatus =
-                statusFilter === "ALL" ||
-                order.orderStatus === statusFilter;
+            return orders.filter(
+                (order) => {
+                    const status =
+                        getOrderStatus(
+                            order
+                        );
 
-            if (!matchesStatus) return false;
+                    const matchesStatus =
+                        statusFilter ===
+                            "ALL" ||
+                        status ===
+                            statusFilter;
 
-            if (!query) return true;
+                    if (
+                        !matchesStatus
+                    ) {
+                        return false;
+                    }
 
-            const orderId =
-                String(order._id || "").toLowerCase();
+                    if (!query) {
+                        return true;
+                    }
 
-            const customerName =
-                String(
-                    order.customer?.name || ""
-                ).toLowerCase();
+                    const orderId =
+                        String(
+                            order._id ||
+                                ""
+                        ).toLowerCase();
 
-            const phone =
-                String(
-                    order.customer?.phone || ""
-                ).toLowerCase();
+                    const customerName =
+                        String(
+                            getCustomerName(
+                                order
+                            )
+                        ).toLowerCase();
 
-            const email =
-                String(
-                    order.user?.email || ""
-                ).toLowerCase();
+                    const phone =
+                        String(
+                            getCustomerPhone(
+                                order
+                            )
+                        ).toLowerCase();
 
-            return (
-                orderId.includes(query) ||
-                customerName.includes(query) ||
-                phone.includes(query) ||
-                email.includes(query)
+                    const email =
+                        String(
+                            getCustomerEmail(
+                                order
+                            )
+                        ).toLowerCase();
+
+                    const address =
+                        String(
+                            getCustomerAddress(
+                                order
+                            )
+                        ).toLowerCase();
+
+                    return (
+                        orderId.includes(
+                            query
+                        ) ||
+                        customerName.includes(
+                            query
+                        ) ||
+                        phone.includes(
+                            query
+                        ) ||
+                        email.includes(
+                            query
+                        ) ||
+                        address.includes(
+                            query
+                        )
+                    );
+                }
             );
-        });
-    }, [orders, search, statusFilter]);
+        }, [
+            orders,
+            search,
+            statusFilter,
+        ]);
 
-    // ==========================================
-    // ACCESS
-    // ==========================================
+    /* =========================================================
+       ACCESS
+    ========================================================= */
+
+    if (authLoading) {
+        return (
+            <div className="admin-page">
+                <div className="admin-message">
+                    <div className="admin-loader">
+                        ⏳
+                    </div>
+
+                    <h2>
+                        Checking Admin Access...
+                    </h2>
+
+                    <p>
+                        Please wait.
+                    </p>
+                </div>
+            </div>
+        );
+    }
 
     if (!user) {
         return (
@@ -290,12 +720,28 @@ function AdminDashboard() {
                         🔐
                     </div>
 
-                    <h2>Login Required</h2>
+                    <h2>
+                        Login Required
+                    </h2>
 
                     <p>
-                        Please login with your admin
-                        account to access the dashboard.
+                        Please login with
+                        your admin account
+                        to access the
+                        dashboard.
                     </p>
+
+                    <button
+                        type="button"
+                        className="browse-menu-btn"
+                        onClick={() =>
+                            navigate(
+                                "/login"
+                            )
+                        }
+                    >
+                        Go to Login
+                    </button>
                 </div>
             </div>
         );
@@ -309,12 +755,27 @@ function AdminDashboard() {
                         🚫
                     </div>
 
-                    <h2>Access Denied</h2>
+                    <h2>
+                        Access Denied
+                    </h2>
 
                     <p>
-                        Only administrators can access
-                        this dashboard.
+                        Only administrators
+                        can access this
+                        dashboard.
                     </p>
+
+                    <button
+                        type="button"
+                        className="browse-menu-btn"
+                        onClick={() =>
+                            navigate(
+                                "/"
+                            )
+                        }
+                    >
+                        Back to Home
+                    </button>
                 </div>
             </div>
         );
@@ -333,27 +794,29 @@ function AdminDashboard() {
                     </h2>
 
                     <p>
-                        Fetching your latest orders.
+                        Fetching your
+                        latest orders.
                     </p>
                 </div>
             </div>
         );
     }
 
-    // ==========================================
-    // UI
-    // ==========================================
+    /* =========================================================
+       UI
+    ========================================================= */
 
     return (
         <main className="admin-page">
 
-            {/* ======================================
+            {/* =================================================
                 HEADER
-            ====================================== */}
+            ================================================= */}
 
             <section className="admin-header">
 
                 <div>
+
                     <span className="admin-eyebrow">
                         SWAAD & SPICE • ADMIN
                     </span>
@@ -367,35 +830,93 @@ function AdminDashboard() {
                         <strong>
                             {user.name}
                         </strong>
-                        . Manage orders and track
-                        your restaurant performance.
+                        . Manage orders
+                        and track your
+                        restaurant
+                        performance.
                     </p>
+
                 </div>
 
-                <button
-                    type="button"
-                    className="refresh-btn"
-                    onClick={() =>
-                        fetchOrders(true)
-                    }
-                    disabled={refreshing}
+                <div
+                    style={{
+                        display: "flex",
+                        gap: "10px",
+                        flexWrap: "wrap",
+                    }}
                 >
-                    {refreshing
-                        ? "⏳ Refreshing..."
-                        : "🔄 Refresh Orders"}
-                </button>
+
+                    <button
+                        type="button"
+                        className="refresh-btn"
+                        onClick={() =>
+                            navigate(
+                                "/admin/reservations"
+                            )
+                        }
+                    >
+                        📅 Reservations
+                    </button>
+
+                    <button
+                        type="button"
+                        className="refresh-btn"
+                        onClick={() =>
+                            fetchOrders(
+                                true
+                            )
+                        }
+                        disabled={
+                            refreshing
+                        }
+                    >
+                        {refreshing
+                            ? "⏳ Refreshing..."
+                            : "🔄 Refresh Orders"}
+                    </button>
+
+                </div>
 
             </section>
 
+            {/* =================================================
+                SUCCESS
+            ================================================= */}
 
-            {/* ======================================
+            {successMessage && (
+                <div
+                    className="admin-success"
+                    style={{
+                        marginBottom:
+                            "20px",
+                    }}
+                >
+                    <span>
+                        ✓
+                    </span>
+
+                    <p>
+                        {
+                            successMessage
+                        }
+                    </p>
+                </div>
+            )}
+
+            {/* =================================================
                 ERROR
-            ====================================== */}
+            ================================================= */}
 
             {error && (
                 <div className="admin-error">
-                    <span>⚠️</span>
-                    <p>{error}</p>
+
+                    <span>
+                        ⚠️
+                    </span>
+
+                    <p>
+                        {error}
+                    </p>
 
                     <button
                         type="button"
@@ -405,113 +926,138 @@ function AdminDashboard() {
                     >
                         Retry
                     </button>
+
                 </div>
             )}
 
-
-            {/* ======================================
+            {/* =================================================
                 STATS
-            ====================================== */}
+            ================================================= */}
 
             <section className="admin-stats">
 
                 <div className="stat-card">
+
                     <div className="stat-icon">
                         📦
                     </div>
 
                     <div>
-                        <span>Total Orders</span>
+                        <span>
+                            Total Orders
+                        </span>
+
                         <h3>
                             {stats.total}
                         </h3>
                     </div>
+
                 </div>
 
-
                 <div className="stat-card">
+
                     <div className="stat-icon">
                         🟡
                     </div>
 
                     <div>
-                        <span>New Orders</span>
+                        <span>
+                            New Orders
+                        </span>
+
                         <h3>
                             {stats.pending}
                         </h3>
                     </div>
+
                 </div>
 
-
                 <div className="stat-card">
+
                     <div className="stat-icon">
                         🔥
                     </div>
 
                     <div>
-                        <span>Active Orders</span>
+                        <span>
+                            Active Orders
+                        </span>
+
                         <h3>
                             {stats.active}
                         </h3>
                     </div>
+
                 </div>
 
-
                 <div className="stat-card">
+
                     <div className="stat-icon">
                         🎉
                     </div>
 
                     <div>
-                        <span>Delivered</span>
+                        <span>
+                            Delivered
+                        </span>
+
                         <h3>
                             {stats.delivered}
                         </h3>
                     </div>
+
                 </div>
 
-
                 <div className="stat-card revenue-card">
+
                     <div className="stat-icon">
                         💰
                     </div>
 
                     <div>
-                        <span>Delivered Revenue</span>
+                        <span>
+                            Delivered Revenue
+                        </span>
+
                         <h3>
                             {formatCurrency(
                                 stats.revenue
                             )}
                         </h3>
                     </div>
+
                 </div>
 
-
                 <div className="stat-card">
+
                     <div className="stat-icon">
                         ❌
                     </div>
 
                     <div>
-                        <span>Cancelled</span>
+                        <span>
+                            Cancelled
+                        </span>
+
                         <h3>
                             {stats.cancelled}
                         </h3>
                     </div>
+
                 </div>
 
             </section>
 
-
-            {/* ======================================
+            {/* =================================================
                 ORDERS SECTION
-            ====================================== */}
+            ================================================= */}
 
             <section className="orders-section">
 
                 <div className="section-title">
 
                     <div>
+
                         <span>
                             ORDER MANAGEMENT
                         </span>
@@ -519,31 +1065,43 @@ function AdminDashboard() {
                         <h2>
                             Customer Orders
                         </h2>
+
                     </div>
 
                     <strong>
-                        {filteredOrders.length}{" "}
+                        {
+                            filteredOrders.length
+                        }{" "}
                         visible
                     </strong>
 
                 </div>
 
-
-                {/* SEARCH / FILTER */}
+                {/* =================================================
+                    SEARCH / FILTER
+                ================================================= */}
 
                 <div className="admin-toolbar">
 
                     <div className="admin-search">
 
-                        <span>🔎</span>
+                        <span>
+                            🔎
+                        </span>
 
                         <input
                             type="text"
                             placeholder="Search order, customer, phone or email..."
-                            value={search}
-                            onChange={(e) =>
+                            value={
+                                search
+                            }
+                            onChange={(
+                                event
+                            ) =>
                                 setSearch(
-                                    e.target.value
+                                    event
+                                        .target
+                                        .value
                                 )
                             }
                         />
@@ -552,7 +1110,9 @@ function AdminDashboard() {
                             <button
                                 type="button"
                                 onClick={() =>
-                                    setSearch("")
+                                    setSearch(
+                                        ""
+                                    )
                                 }
                             >
                                 ✕
@@ -561,42 +1121,55 @@ function AdminDashboard() {
 
                     </div>
 
-
                     <select
                         className="status-filter"
-                        value={statusFilter}
-                        onChange={(e) =>
+                        value={
+                            statusFilter
+                        }
+                        onChange={(
+                            event
+                        ) =>
                             setStatusFilter(
-                                e.target.value
+                                event
+                                    .target
+                                    .value
                             )
                         }
                     >
+
                         <option value="ALL">
                             All Status
                         </option>
 
                         {STATUS_OPTIONS.map(
-                            (status) => (
+                            (
+                                status
+                            ) => (
                                 <option
-                                    key={status.value}
+                                    key={
+                                        status.value
+                                    }
                                     value={
                                         status.value
                                     }
                                 >
-                                    {status.label}
+                                    {
+                                        status.label
+                                    }
                                 </option>
                             )
                         )}
+
                     </select>
 
                 </div>
 
-
-                {/* ==================================
+                {/* =================================================
                     EMPTY
-                ================================== */}
+                ================================================= */}
 
-                {filteredOrders.length === 0 ? (
+                {filteredOrders.length ===
+                0 ? (
                     <div className="no-orders">
 
                         <div className="no-orders-icon">
@@ -608,7 +1181,8 @@ function AdminDashboard() {
                         </h2>
 
                         <p>
-                            {orders.length === 0
+                            {orders.length ===
+                            0
                                 ? "Customer orders will appear here once someone places an order."
                                 : "Try changing your search or status filter."}
                         </p>
@@ -620,7 +1194,10 @@ function AdminDashboard() {
                                 type="button"
                                 className="browse-menu-btn"
                                 onClick={() => {
-                                    setSearch("");
+                                    setSearch(
+                                        ""
+                                    );
+
                                     setStatusFilter(
                                         "ALL"
                                     );
@@ -633,6 +1210,10 @@ function AdminDashboard() {
                     </div>
                 ) : (
 
+                    /* =================================================
+                       ORDER LIST
+                    ================================================= */
+
                     <div className="orders-list">
 
                         {filteredOrders.map(
@@ -640,33 +1221,49 @@ function AdminDashboard() {
 
                                 const totalQuantity =
                                     order.items?.reduce(
-                                        (sum, item) =>
+                                        (
+                                            sum,
+                                            item
+                                        ) =>
                                             sum +
                                             Number(
                                                 item.quantity ||
                                                     0
                                             ),
                                         0
+                                    ) || 0;
+
+                                const orderStatus =
+                                    getOrderStatus(
+                                        order
                                     );
 
                                 return (
                                     <article
                                         className="order-card"
-                                        key={order._id}
+                                        key={
+                                            order._id
+                                        }
                                     >
 
-                                        {/* ORDER HEADER */}
+                                        {/* =================================
+                                            ORDER HEADER
+                                        ================================= */}
 
                                         <div className="order-header">
 
                                             <div>
+
                                                 <span className="order-label">
                                                     ORDER
                                                 </span>
 
                                                 <h3>
                                                     #
-                                                    {order._id
+                                                    {String(
+                                                        order._id ||
+                                                            ""
+                                                    )
                                                         .slice(
                                                             -8
                                                         )
@@ -674,129 +1271,147 @@ function AdminDashboard() {
                                                 </h3>
 
                                                 <p>
-                                                    {new Date(
-                                                        order.createdAt
-                                                    ).toLocaleString(
-                                                        "en-IN",
-                                                        {
-                                                            dateStyle:
-                                                                "medium",
-                                                            timeStyle:
-                                                                "short",
-                                                        }
-                                                    )}
+                                                    {order.createdAt
+                                                        ? new Date(
+                                                              order.createdAt
+                                                          ).toLocaleString(
+                                                              "en-IN",
+                                                              {
+                                                                  dateStyle:
+                                                                      "medium",
+                                                                  timeStyle:
+                                                                      "short",
+                                                              }
+                                                          )
+                                                        : "Date unavailable"}
                                                 </p>
-                                            </div>
 
+                                            </div>
 
                                             <span
                                                 className={`status ${getStatusClass(
-                                                    order.orderStatus
+                                                    orderStatus
                                                 )}`}
                                             >
                                                 {formatStatus(
-                                                    order.orderStatus
+                                                    orderStatus
                                                 )}
                                             </span>
 
                                         </div>
 
-
-                                        {/* CUSTOMER */}
+                                        {/* =================================
+                                            CUSTOMER
+                                        ================================= */}
 
                                         <div className="customer-info">
 
                                             <div className="subsection-heading">
+
                                                 <h4>
                                                     👤 Customer Details
                                                 </h4>
+
                                             </div>
 
                                             <div className="customer-grid">
 
                                                 <p>
+
                                                     <span>
                                                         Name
                                                     </span>
+
                                                     <strong>
                                                         {
-                                                            order
-                                                                .customer
-                                                                ?.name ||
-                                                            "—"
+                                                            getCustomerName(
+                                                                order
+                                                            )
                                                         }
                                                     </strong>
+
                                                 </p>
 
                                                 <p>
+
                                                     <span>
                                                         Phone
                                                     </span>
+
                                                     <strong>
                                                         {
-                                                            order
-                                                                .customer
-                                                                ?.phone ||
-                                                            "—"
+                                                            getCustomerPhone(
+                                                                order
+                                                            )
                                                         }
                                                     </strong>
+
                                                 </p>
 
                                                 <p>
+
                                                     <span>
                                                         Email
                                                     </span>
+
                                                     <strong>
                                                         {
-                                                            order
-                                                                .user
-                                                                ?.email ||
-                                                            "—"
+                                                            getCustomerEmail(
+                                                                order
+                                                            )
                                                         }
                                                     </strong>
+
                                                 </p>
 
                                                 <p className="customer-address">
+
                                                     <span>
                                                         Delivery Address
                                                     </span>
+
                                                     <strong>
                                                         {
-                                                            order
-                                                                .customer
-                                                                ?.address ||
-                                                            "—"
+                                                            getCustomerAddress(
+                                                                order
+                                                            )
                                                         }
                                                     </strong>
+
                                                 </p>
 
                                             </div>
 
-                                            {order.customer
-                                                ?.instructions && (
+                                            {getSpecialInstructions(
+                                                order
+                                            ) && (
                                                 <div className="instructions">
+
                                                     <strong>
                                                         📝 Special Instructions
                                                     </strong>
 
                                                     <p>
                                                         {
-                                                            order
-                                                                .customer
-                                                                .instructions
+                                                            getSpecialInstructions(
+                                                                order
+                                                            )
                                                         }
                                                     </p>
+
                                                 </div>
                                             )}
 
                                         </div>
 
-
-                                        {/* ITEMS */}
+                                        {/* =================================
+                                            ITEMS
+                                        ================================= */}
 
                                         <div className="order-items">
 
                                             <div className="subsection-heading">
+
                                                 <h4>
                                                     🍛 Ordered Items
                                                 </h4>
@@ -811,75 +1426,97 @@ function AdminDashboard() {
                                                         ? "s"
                                                         : ""}
                                                 </span>
+
                                             </div>
 
+                                            {order.items?.length >
+                                            0 ? (
+                                                order.items.map(
+                                                    (
+                                                        item,
+                                                        index
+                                                    ) => (
+                                                        <div
+                                                            className="order-item"
+                                                            key={`${order._id}-${index}`}
+                                                        >
 
-                                            {order.items?.map(
-                                                (
-                                                    item,
-                                                    index
-                                                ) => (
-                                                    <div
-                                                        className="order-item"
-                                                        key={`${order._id}-${index}`}
-                                                    >
+                                                            <div className="order-item-image">
 
-                                                        <div className="order-item-image">
-                                                            {item.image ? (
-                                                                <img
-                                                                    src={
-                                                                        item.image
-                                                                    }
-                                                                    alt={
+                                                                {item.image ? (
+                                                                    <img
+                                                                        src={
+                                                                            item.image
+                                                                        }
+                                                                        alt={
+                                                                            item.name ||
+                                                                            "Food item"
+                                                                        }
+                                                                    />
+                                                                ) : (
+                                                                    <span>
+                                                                        🍛
+                                                                    </span>
+                                                                )}
+
+                                                            </div>
+
+                                                            <div className="item-details">
+
+                                                                <h5>
+                                                                    {
                                                                         item.name
                                                                     }
-                                                                />
-                                                            ) : (
-                                                                <span>
-                                                                    🍛
-                                                                </span>
-                                                            )}
-                                                        </div>
+                                                                </h5>
 
-                                                        <div className="item-details">
-
-                                                            <h5>
-                                                                {
-                                                                    item.name
-                                                                }
-                                                            </h5>
-
-                                                            <p>
-                                                                {formatCurrency(
-                                                                    item.price
-                                                                )}{" "}
-                                                                ×{" "}
-                                                                {
-                                                                    item.quantity
-                                                                }
-                                                            </p>
-
-                                                        </div>
-
-                                                        <strong>
-                                                            {formatCurrency(
-                                                                Number(
-                                                                    item.price
-                                                                ) *
-                                                                    Number(
+                                                                <p>
+                                                                    {formatCurrency(
+                                                                        item.price
+                                                                    )}{" "}
+                                                                    ×{" "}
+                                                                    {
                                                                         item.quantity
-                                                                    )
-                                                            )}
-                                                        </strong>
+                                                                    }
+                                                                </p>
 
-                                                    </div>
+                                                            </div>
+
+                                                            <strong>
+                                                                {formatCurrency(
+                                                                    Number(
+                                                                        item.price ||
+                                                                            0
+                                                                    ) *
+                                                                        Number(
+                                                                            item.quantity ||
+                                                                                0
+                                                                        )
+                                                                )}
+                                                            </strong>
+
+                                                        </div>
+                                                    )
                                                 )
+                                            ) : (
+                                                <p
+                                                    style={{
+                                                        padding:
+                                                            "15px",
+                                                        opacity:
+                                                            0.7,
+                                                    }}
+                                                >
+                                                    No item
+                                                    details
+                                                    available.
+                                                </p>
                                             )}
 
                                         </div>
 
-
-                                        {/* PRICE BREAKDOWN */}
+                                        {/* =================================
+                                            PRICE BREAKDOWN
+                                        ================================= */}
 
                                         <div className="admin-price-breakdown">
 
@@ -888,6 +1525,7 @@ function AdminDashboard() {
                                             </h4>
 
                                             <div className="price-row">
+
                                                 <span>
                                                     Subtotal
                                                 </span>
@@ -897,9 +1535,11 @@ function AdminDashboard() {
                                                         order.subtotal
                                                     )}
                                                 </strong>
+
                                             </div>
 
                                             <div className="price-row">
+
                                                 <span>
                                                     GST (
                                                     {
@@ -914,9 +1554,11 @@ function AdminDashboard() {
                                                         order.gstAmount
                                                     )}
                                                 </strong>
+
                                             </div>
 
                                             <div className="price-row">
+
                                                 <span>
                                                     Packaging (
                                                     ₹
@@ -936,9 +1578,11 @@ function AdminDashboard() {
                                                         order.packagingAmount
                                                     )}
                                                 </strong>
+
                                             </div>
 
                                             <div className="price-row">
+
                                                 <span>
                                                     Handling Charge
                                                 </span>
@@ -946,14 +1590,16 @@ function AdminDashboard() {
                                                 <strong>
                                                     {formatCurrency(
                                                         order.handlingCharge ??
-                                                        5
+                                                            5
                                                     )}
                                                 </strong>
+
                                             </div>
 
                                             <div className="price-divider" />
 
                                             <div className="price-total">
+
                                                 <span>
                                                     Grand Total
                                                 </span>
@@ -963,12 +1609,14 @@ function AdminDashboard() {
                                                         order.totalAmount
                                                     )}
                                                 </strong>
+
                                             </div>
 
                                         </div>
 
-
-                                        {/* PAYMENT */}
+                                        {/* =================================
+                                            PAYMENT
+                                        ================================= */}
 
                                         <div className="order-footer">
 
@@ -979,25 +1627,27 @@ function AdminDashboard() {
                                                 </span>
 
                                                 <p>
+
                                                     <strong>
                                                         {order.paymentMethod ===
                                                         "ONLINE"
                                                             ? "💳 Online Payment"
                                                             : "💵 Cash on Delivery"}
                                                     </strong>
+
                                                 </p>
 
                                                 <p>
                                                     Payment Status:{" "}
                                                     <strong>
                                                         {
-                                                            order.paymentStatus
+                                                            order.paymentStatus ||
+                                                            "PENDING"
                                                         }
                                                     </strong>
                                                 </p>
 
                                             </div>
-
 
                                             <div className="order-total">
 
@@ -1015,15 +1665,18 @@ function AdminDashboard() {
 
                                         </div>
 
-
-                                        {/* STATUS */}
+                                        {/* =================================
+                                            STATUS ACTIONS
+                                        ================================= */}
 
                                         <div className="status-actions">
 
                                             <div className="subsection-heading">
+
                                                 <h4>
                                                     Update Order Status
                                                 </h4>
+
                                             </div>
 
                                             <div className="status-buttons">
@@ -1038,7 +1691,7 @@ function AdminDashboard() {
                                                             }
                                                             type="button"
                                                             className={
-                                                                order.orderStatus ===
+                                                                orderStatus ===
                                                                 status.value
                                                                     ? "active"
                                                                     : ""
@@ -1054,12 +1707,14 @@ function AdminDashboard() {
                                                                 order._id
                                                             }
                                                         >
+
                                                             {
                                                                 status.icon
                                                             }{" "}
                                                             {
                                                                 status.label
                                                             }
+
                                                         </button>
                                                     )
                                                 )}
@@ -1069,7 +1724,8 @@ function AdminDashboard() {
                                             {updatingOrder ===
                                                 order._id && (
                                                 <p className="updating-text">
-                                                    ⏳ Updating order...
+                                                    ⏳ Updating
+                                                    order...
                                                 </p>
                                             )}
 

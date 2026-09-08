@@ -1,391 +1,981 @@
+/* =========================================================
+   SWAAD & SPICE
+   MY ORDERS PAGE
+   ========================================================= */
+
+
+/* =========================================================
+   PAGE
+========================================================= */
+
 .my-orders-page {
     min-height: 100vh;
-    padding: 140px 6% 60px;
-    color: white;
+
+    padding: 120px 24px 60px;
+
+    background:
+        radial-gradient(
+            circle at top left,
+            rgba(245, 158, 11, 0.08),
+            transparent 35%
+        ),
+        linear-gradient(
+            135deg,
+            #fffaf2 0%,
+            #ffffff 50%,
+            #fff7ed 100%
+        );
+
+    color: #292524;
 }
 
 
-/* =========================
+/* =========================================================
    HEADER
-========================= */
+========================================================= */
 
 .orders-header {
-    text-align: center;
-    margin-bottom: 40px;
+    max-width: 1100px;
+
+    margin: 0 auto 28px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 20px;
 }
+
 
 .orders-header h1 {
-    font-size: 42px;
-    margin-bottom: 10px;
+    margin: 0 0 8px;
+
+    color: #7c2d12;
+
+    font-size: clamp(
+        28px,
+        4vw,
+        42px
+    );
+
+    font-weight: 800;
+
+    line-height: 1.15;
+
+    letter-spacing: -0.8px;
 }
+
 
 .orders-header p {
-    color: rgba(255, 255, 255, 0.75);
-    font-size: 17px;
+    margin: 0;
+
+    color: #57534e;
+
+    font-size: 15px;
+
+    font-weight: 500;
+
+    line-height: 1.5;
 }
 
 
-/* =========================
+/* =========================================================
+   REFRESH BUTTON
+========================================================= */
+
+.refresh-orders-btn {
+    min-height: 42px;
+
+    padding: 10px 18px;
+
+    border: 1px solid #fed7aa;
+
+    border-radius: 12px;
+
+    background: #ffffff;
+
+    color: #9a3412;
+
+    font-family: inherit;
+
+    font-size: 14px;
+
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease,
+        background 0.2s ease,
+        border-color 0.2s ease;
+}
+
+
+.refresh-orders-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+
+    background: #fff7ed;
+
+    border-color: #fdba74;
+
+    box-shadow:
+        0 8px 20px
+        rgba(124, 45, 18, 0.10);
+}
+
+
+.refresh-orders-btn:disabled {
+    opacity: 0.65;
+
+    cursor: not-allowed;
+}
+
+
+/* =========================================================
+   LIVE UPDATE
+========================================================= */
+
+.orders-live-update {
+    max-width: 1100px;
+
+    margin: 0 auto 18px;
+
+    padding: 11px 16px;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    border: 1px solid #fed7aa;
+
+    border-radius: 10px;
+
+    background: #fff7ed;
+
+    color: #9a3412;
+
+    font-size: 13px;
+
+    font-weight: 600;
+}
+
+
+.live-dot {
+    color: #ea580c;
+
+    animation:
+        livePulse 1.2s infinite;
+}
+
+
+@keyframes livePulse {
+
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.35;
+        transform: scale(0.8);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+}
+
+
+/* =========================================================
    ORDERS CONTAINER
-========================= */
+========================================================= */
 
 .orders-container {
-    max-width: 1000px;
+    width: 100%;
+
+    max-width: 1100px;
+
     margin: 0 auto;
 
     display: flex;
+
     flex-direction: column;
-    gap: 25px;
+
+    gap: 24px;
 }
 
 
-/* =========================
+/* =========================================================
    ORDER CARD
-========================= */
+========================================================= */
 
 .order-card {
-    background: rgba(255, 255, 255, 0.10);
+    width: 100%;
 
-    backdrop-filter: blur(15px);
-    -webkit-backdrop-filter: blur(15px);
+    padding: 24px;
 
-    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: #ffffff;
+
+    border: 1px solid #eadfd3;
 
     border-radius: 20px;
 
-    padding: 25px;
+    color: #292524;
 
     box-shadow:
-        0 10px 35px rgba(0, 0, 0, 0.25);
+        0 10px 35px
+        rgba(67, 20, 7, 0.07);
+
+    transition:
+        transform 0.25s ease,
+        box-shadow 0.25s ease,
+        border-color 0.25s ease;
 }
 
 
-/* =========================
+.order-card:hover {
+    transform: translateY(-3px);
+
+    border-color: #e7c9a5;
+
+    box-shadow:
+        0 18px 45px
+        rgba(67, 20, 7, 0.11);
+}
+
+
+/* =========================================================
    ORDER TOP
-========================= */
+========================================================= */
 
 .order-top {
     display: flex;
-    justify-content: space-between;
+
     align-items: center;
+
+    justify-content: space-between;
 
     gap: 20px;
 
-    padding-bottom: 20px;
+    padding-bottom: 18px;
 
-    border-bottom:
-        1px solid rgba(255, 255, 255, 0.12);
+    border-bottom: 1px solid #eee7df;
 }
+
 
 .order-top h3 {
     margin: 0 0 6px;
 
-    font-size: 20px;
+    color: #292524;
+
+    font-size: 17px;
+
+    font-weight: 800;
+
+    line-height: 1.3;
 }
+
 
 .order-top p {
     margin: 0;
 
-    color: rgba(255, 255, 255, 0.60);
+    color: #78716c;
+
+    font-size: 13px;
+
+    font-weight: 500;
+}
+
+
+/* =========================================================
+   ORDER STATUS
+========================================================= */
+
+.order-status {
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 5px;
+
+    min-height: 34px;
+
+    padding: 7px 13px;
+
+    border-radius: 999px;
+
+    font-size: 12px;
+
+    font-weight: 800;
+
+    border: 1px solid transparent;
+
+    white-space: nowrap;
+}
+
+
+/* PLACED */
+
+.status-placed {
+    background: #fff7ed;
+
+    color: #c2410c;
+
+    border-color: #fed7aa;
+}
+
+
+/* CONFIRMED */
+
+.status-confirmed {
+    background: #eff6ff;
+
+    color: #1d4ed8;
+
+    border-color: #bfdbfe;
+}
+
+
+/* PREPARING */
+
+.status-preparing {
+    background: #fefce8;
+
+    color: #a16207;
+
+    border-color: #fde68a;
+}
+
+
+/* OUT FOR DELIVERY */
+
+.status-delivery {
+    background: #f5f3ff;
+
+    color: #6d28d9;
+
+    border-color: #ddd6fe;
+}
+
+
+/* DELIVERED */
+
+.status-delivered {
+    background: #f0fdf4;
+
+    color: #15803d;
+
+    border-color: #bbf7d0;
+}
+
+
+/* CANCELLED */
+
+.status-cancelled {
+    background: #fef2f2;
+
+    color: #b91c1c;
+
+    border-color: #fecaca;
+}
+
+
+/* =========================================================
+   ORDER PROGRESS
+========================================================= */
+
+.order-progress {
+    width: 100%;
+
+    margin: 26px 0 28px;
+
+    display: flex;
+
+    align-items: center;
+}
+
+
+.progress-step {
+    min-width: 58px;
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 6px;
+
+    text-align: center;
+
+    color: #78716c;
+
+    transition:
+        color 0.3s ease;
+}
+
+
+.progress-step span {
+    width: 36px;
+    height: 36px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    border-radius: 50%;
+
+    background: #f5f5f4;
+
+    border: 2px solid #d6d3d1;
+
+    color: #57534e;
+
+    font-size: 15px;
+
+    transition:
+        all 0.3s ease;
+}
+
+
+.progress-step small {
+    color: inherit;
+
+    font-size: 10px;
+
+    font-weight: 700;
+
+    line-height: 1.3;
+
+    white-space: nowrap;
+}
+
+
+/* ACTIVE */
+
+.progress-step.active {
+    color: #9a3412;
+}
+
+
+.progress-step.active span {
+    background: #fff7ed;
+
+    border-color: #fb923c;
+
+    color: #9a3412;
+
+    box-shadow:
+        0 0 0 4px
+        rgba(251, 146, 60, 0.10);
+}
+
+
+/* COMPLETED */
+
+.progress-step.completed {
+    color: #9a3412;
+}
+
+
+.progress-step.completed span {
+    background: #fff7ed;
+
+    border-color: #fb923c;
+
+    color: #9a3412;
+}
+
+
+/* =========================================================
+   PROGRESS LINE
+========================================================= */
+
+.progress-line {
+    flex: 1;
+
+    height: 3px;
+
+    min-width: 10px;
+
+    margin: 0 5px;
+
+    background: #e7e5e4;
+
+    border-radius: 999px;
+
+    transition:
+        background 0.4s ease;
+}
+
+
+.progress-line.active {
+    background: #fb923c;
+}
+
+
+/* =========================================================
+   CANCELLED MESSAGE
+========================================================= */
+
+.order-cancelled-message {
+    margin-bottom: 20px;
+
+    padding: 14px 16px;
+
+    border-radius: 12px;
+
+    background: #fef2f2;
+
+    border: 1px solid #fecaca;
+
+    color: #991b1b;
+}
+
+
+.order-cancelled-message strong {
+    display: block;
+
+    margin-bottom: 4px;
+
+    color: #991b1b;
 
     font-size: 14px;
 }
 
 
-/* =========================
-   STATUS
-========================= */
+.order-cancelled-message p {
+    margin: 0;
 
-.order-status {
-    padding: 8px 14px;
-
-    border-radius: 20px;
+    color: #b91c1c;
 
     font-size: 13px;
 
-    font-weight: 700;
-
-    white-space: nowrap;
-}
-
-.status-placed {
-    background: rgba(255, 193, 7, 0.20);
-    color: #ffc107;
-}
-
-.status-confirmed {
-    background: rgba(33, 150, 243, 0.20);
-    color: #42a5f5;
-}
-
-.status-preparing {
-    background: rgba(255, 152, 0, 0.20);
-    color: #ff9800;
-}
-
-.status-delivery {
-    background: rgba(156, 39, 176, 0.20);
-    color: #ce93d8;
-}
-
-.status-delivered {
-    background: rgba(76, 175, 80, 0.20);
-    color: #66bb6a;
-}
-
-.status-cancelled {
-    background: rgba(244, 67, 54, 0.20);
-    color: #ef5350;
+    line-height: 1.5;
 }
 
 
-/* =========================
+/* =========================================================
    ORDER ITEMS
-========================= */
+========================================================= */
 
 .order-items {
-    padding: 20px 0;
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 14px;
+
+    margin-bottom: 22px;
 }
+
 
 .order-item {
     display: flex;
 
     align-items: center;
 
-    gap: 15px;
+    gap: 14px;
 
-    padding: 12px 0;
+    padding: 12px;
 
-    border-bottom:
-        1px solid rgba(255, 255, 255, 0.08);
+    background: #fcfaf8;
+
+    border: 1px solid #eee7df;
+
+    border-radius: 14px;
 }
 
-.order-item:last-child {
-    border-bottom: none;
-}
 
 .order-item img {
-    width: 65px;
-    height: 65px;
+    width: 64px;
+    height: 64px;
+
+    flex-shrink: 0;
 
     object-fit: cover;
 
     border-radius: 12px;
+
+    background: #f5f5f4;
 }
+
 
 .item-details {
     flex: 1;
+
+    min-width: 0;
 }
+
 
 .item-details h4 {
     margin: 0 0 5px;
 
-    font-size: 16px;
+    color: #292524;
+
+    font-size: 15px;
+
+    font-weight: 750;
+
+    line-height: 1.35;
 }
+
 
 .item-details p {
     margin: 0;
 
-    color: rgba(255, 255, 255, 0.65);
+    color: #78716c;
+
+    font-size: 13px;
+
+    font-weight: 500;
+
+    line-height: 1.4;
+}
+
+
+.order-item > strong {
+    color: #292524;
 
     font-size: 14px;
+
+    font-weight: 800;
+
+    white-space: nowrap;
 }
 
-.order-item strong {
-    font-size: 16px;
-}
 
-
-/* =========================
+/* =========================================================
    CUSTOMER DETAILS
-========================= */
+========================================================= */
 
 .order-customer {
-    padding: 18px 0;
+    margin-bottom: 20px;
 
-    border-top:
-        1px solid rgba(255, 255, 255, 0.10);
+    padding: 18px;
 
-    border-bottom:
-        1px solid rgba(255, 255, 255, 0.10);
+    background: #fffbeb;
+
+    border: 1px solid #fde68a;
+
+    border-radius: 14px;
+
+    color: #57534e;
 }
+
 
 .order-customer h4 {
-    margin: 0 0 10px;
+    margin: 0 0 12px;
 
-    font-size: 16px;
-}
-
-.order-customer p {
-    margin: 6px 0;
-
-    color: rgba(255, 255, 255, 0.70);
+    color: #78350f;
 
     font-size: 14px;
+
+    font-weight: 800;
 }
 
 
-/* =========================
+.order-customer p {
+    margin: 7px 0;
+
+    color: #57534e;
+
+    font-size: 13px;
+
+    line-height: 1.55;
+}
+
+
+.order-customer p strong {
+    color: #44403c;
+}
+
+
+/* =========================================================
    ORDER BOTTOM
-========================= */
+========================================================= */
 
 .order-bottom {
     display: flex;
 
-    justify-content: space-between;
-
     align-items: center;
 
-    padding-top: 20px;
+    justify-content: space-between;
 
-    color: rgba(255, 255, 255, 0.70);
+    gap: 20px;
+
+    padding-top: 18px;
+
+    border-top: 1px solid #eee7df;
+
+    color: #57534e;
+
+    font-size: 13px;
 }
+
+
+.order-bottom span {
+    color: #78716c;
+}
+
 
 .order-bottom strong {
-    color: white;
+    color: #292524;
+
+    font-weight: 800;
 }
+
 
 .order-total {
     display: flex;
 
-    flex-direction: column;
+    align-items: center;
 
-    align-items: flex-end;
-
-    gap: 4px;
+    gap: 10px;
 }
 
-.order-total span {
-    font-size: 13px;
-
-    color: rgba(255, 255, 255, 0.60);
-}
 
 .order-total strong {
-    font-size: 22px;
+    color: #9a3412;
 
-    color: #ff6b35;
+    font-size: 21px;
+
+    font-weight: 900;
 }
 
 
-/* =========================
-   NO ORDERS
-========================= */
+/* =========================================================
+   LOADING
+========================================================= */
 
-.no-orders {
-    max-width: 600px;
+.orders-loading {
+    max-width: 700px;
 
-    margin: 50px auto;
+    margin: 100px auto;
+
+    padding: 50px 25px;
 
     text-align: center;
 
-    padding: 50px 30px;
+    background: #ffffff;
 
-    background: rgba(255, 255, 255, 0.08);
-
-    backdrop-filter: blur(15px);
-
-    border:
-        1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid #eadfd3;
 
     border-radius: 20px;
-}
 
-.no-orders-icon {
-    font-size: 60px;
-
-    margin-bottom: 15px;
-}
-
-.no-orders h2 {
-    margin-bottom: 10px;
-}
-
-.no-orders p {
-    color: rgba(255, 255, 255, 0.65);
-
-    margin-bottom: 25px;
+    box-shadow:
+        0 10px 35px
+        rgba(67, 20, 7, 0.06);
 }
 
 
-/* =========================
-   BUTTONS
-========================= */
+.orders-loading h2 {
+    margin: 0 0 10px;
 
-.browse-menu-btn,
-.retry-btn {
+    color: #7c2d12;
+
+    font-size: 24px;
+
+    font-weight: 800;
+}
+
+
+.orders-loading p {
+    margin: 0;
+
+    color: #57534e;
+
+    font-size: 14px;
+}
+
+
+/* =========================================================
+   ERROR
+========================================================= */
+
+.orders-error {
+    max-width: 650px;
+
+    margin: 100px auto;
+
+    padding: 45px 25px;
+
+    text-align: center;
+
+    background: #ffffff;
+
+    border: 1px solid #fecaca;
+
+    border-radius: 20px;
+
+    box-shadow:
+        0 10px 30px
+        rgba(127, 29, 29, 0.06);
+}
+
+
+.orders-error h2 {
+    margin: 0 0 12px;
+
+    color: #991b1b;
+
+    font-size: 24px;
+}
+
+
+.orders-error p {
+    margin: 0 0 22px;
+
+    color: #57534e;
+
+    font-size: 14px;
+
+    line-height: 1.6;
+}
+
+
+/* =========================================================
+   RETRY / BROWSE MENU BUTTON
+========================================================= */
+
+.retry-btn,
+.browse-menu-btn {
+    min-height: 44px;
+
+    padding: 11px 20px;
+
     border: none;
 
-    padding: 12px 22px;
+    border-radius: 12px;
 
-    border-radius: 10px;
+    background: #9a3412;
 
-    background: #ff6b35;
+    color: #ffffff;
 
-    color: white;
+    font-family: inherit;
 
-    font-size: 15px;
+    font-size: 14px;
 
-    font-weight: 600;
+    font-weight: 700;
 
     cursor: pointer;
 
-    transition: 0.3s ease;
+    transition:
+        transform 0.2s ease,
+        background 0.2s ease,
+        box-shadow 0.2s ease;
 }
 
-.browse-menu-btn:hover,
-.retry-btn:hover {
+
+.retry-btn:hover,
+.browse-menu-btn:hover {
     transform: translateY(-2px);
 
+    background: #7c2d12;
+
     box-shadow:
-        0 7px 20px rgba(255, 107, 53, 0.35);
+        0 8px 20px
+        rgba(124, 45, 18, 0.20);
 }
 
 
-/* =========================
-   LOADING / ERROR
-========================= */
+/* =========================================================
+   NO ORDERS
+========================================================= */
 
-.orders-loading,
-.orders-error {
-    max-width: 600px;
+.no-orders {
+    max-width: 700px;
 
-    margin: 80px auto;
+    margin: 50px auto;
+
+    padding: 60px 25px;
 
     text-align: center;
 
-    padding: 40px;
+    background: #ffffff;
 
-    background: rgba(255, 255, 255, 0.08);
-
-    backdrop-filter: blur(15px);
+    border: 1px solid #eadfd3;
 
     border-radius: 20px;
+
+    box-shadow:
+        0 10px 35px
+        rgba(67, 20, 7, 0.06);
 }
 
-.orders-loading p,
-.orders-error p {
-    color: rgba(255, 255, 255, 0.65);
+
+.no-orders-icon {
+    margin-bottom: 15px;
+
+    font-size: 55px;
 }
 
 
-/* =========================
-   MOBILE
-========================= */
+.no-orders h2 {
+    margin: 0 0 8px;
+
+    color: #292524;
+
+    font-size: 24px;
+
+    font-weight: 800;
+}
+
+
+.no-orders p {
+    margin: 0 0 22px;
+
+    color: #57534e;
+
+    font-size: 14px;
+}
+
+
+/* =========================================================
+   MOBILE / TABLET
+========================================================= */
 
 @media (max-width: 768px) {
 
     .my-orders-page {
-        padding: 120px 20px 40px;
+        padding:
+            100px
+            16px
+            45px;
     }
 
-    .orders-header h1 {
-        font-size: 32px;
+
+    .orders-header {
+        align-items: flex-start;
+
+        flex-direction: column;
     }
+
+
+    .refresh-orders-btn {
+        width: 100%;
+    }
+
 
     .order-card {
         padding: 18px;
+
+        border-radius: 16px;
     }
+
 
     .order-top {
         align-items: flex-start;
@@ -393,24 +983,220 @@
         flex-direction: column;
     }
 
-    .order-item img {
-        width: 55px;
-        height: 55px;
+
+    .order-status {
+        align-self: flex-start;
     }
 
-    .order-item strong {
+
+    .order-progress {
+        overflow-x: auto;
+
+        padding-bottom: 8px;
+
+        justify-content: flex-start;
+    }
+
+
+    .progress-step {
+        flex-shrink: 0;
+    }
+
+
+    .progress-line {
+        flex: 0 0 28px;
+
+        min-width: 28px;
+    }
+
+
+    .order-item img {
+        width: 56px;
+        height: 56px;
+    }
+
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 520px) {
+
+    .my-orders-page {
+        padding:
+            90px
+            12px
+            35px;
+    }
+
+
+    .orders-header h1 {
+        font-size: 30px;
+    }
+
+
+    .orders-header p {
         font-size: 14px;
     }
+
+
+    .order-card {
+        padding: 15px;
+    }
+
+
+    .order-top h3 {
+        font-size: 15px;
+    }
+
+
+    .order-top p {
+        font-size: 12px;
+    }
+
+
+    .order-status {
+        font-size: 11px;
+
+        padding:
+            7px
+            11px;
+    }
+
+
+    .order-progress {
+        margin:
+            22px
+            -3px
+            25px;
+    }
+
+
+    .progress-step span {
+        width: 32px;
+        height: 32px;
+
+        font-size: 13px;
+    }
+
+
+    .progress-step small {
+        font-size: 9px;
+    }
+
+
+    .progress-line {
+        flex-basis: 16px;
+
+        min-width: 16px;
+
+        margin:
+            0
+            3px;
+    }
+
+
+    .order-item {
+        gap: 10px;
+
+        padding: 9px;
+    }
+
+
+    .order-item img {
+        width: 50px;
+        height: 50px;
+    }
+
+
+    .item-details h4 {
+        font-size: 13px;
+    }
+
+
+    .item-details p {
+        font-size: 11px;
+    }
+
+
+    .order-item > strong {
+        font-size: 12px;
+    }
+
+
+    .order-customer {
+        padding: 14px;
+    }
+
+
+    .order-customer p {
+        font-size: 12px;
+    }
+
 
     .order-bottom {
         align-items: flex-start;
 
         flex-direction: column;
-
-        gap: 15px;
     }
+
 
     .order-total {
-        align-items: flex-start;
+        width: 100%;
+
+        justify-content: space-between;
     }
+
+
+    .order-total strong {
+        font-size: 19px;
+    }
+
+
+    .orders-live-update {
+        font-size: 12px;
+    }
+
+
+    .no-orders {
+        padding: 45px 18px;
+    }
+
+}
+
+
+/* =========================================================
+   ACCESSIBILITY
+========================================================= */
+
+button:focus-visible {
+    outline:
+        3px solid
+        rgba(234, 88, 12, 0.25);
+
+    outline-offset: 3px;
+}
+
+
+/* =========================================================
+   REDUCED MOTION
+========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+        animation-duration:
+            0.01ms !important;
+
+        animation-iteration-count:
+            1 !important;
+
+        transition-duration:
+            0.01ms !important;
+    }
+
 }

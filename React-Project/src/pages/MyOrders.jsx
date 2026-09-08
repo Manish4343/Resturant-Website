@@ -1,12 +1,15 @@
-import { useCallback, useEffect, useState } from "react";
+import {
+    useCallback,
+    useEffect,
+    useRef,
+    useState,
+} from "react";
+
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import "../styles/myOrders.css";
 
-const API_URL =
-    import.meta.env.VITE_API_URL ||
-    "http://localhost:5000/api";
+import "../styles/myOrders.css";
 
 function MyOrders() {
     const navigate = useNavigate();
@@ -21,11 +24,20 @@ function MyOrders() {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState("");
-    const [statusMessage, setStatusMessage] = useState("");
 
-    // =====================================================
+    const previousStatuses = useRef({});
+
+    // ==========================================
+    // API URL
+    // ==========================================
+
+    const API_URL =
+        import.meta.env.VITE_API_URL ||
+        "http://localhost:5000/api";
+
+    // ==========================================
     // GET TOKEN
-    // =====================================================
+    // ==========================================
 
     const getToken = useCallback(() => {
         return (
@@ -35,27 +47,68 @@ function MyOrders() {
         );
     }, [token]);
 
-    // =====================================================
+    // ==========================================
+    // NORMALIZE ORDER STATUS
+    // ==========================================
+
+    const normalizeStatus = (order) => {
+        return String(
+            order?.orderStatus ||
+                order?.status ||
+                "PLACED"
+        )
+            .trim()
+            .toUpperCase();
+    };
+
+    // ==========================================
+    // EXTRACT ORDERS FROM API RESPONSE
+    // ==========================================
+
+    const extractOrders = (responseData) => {
+        if (Array.isArray(responseData)) {
+            return responseData;
+        }
+
+        if (Array.isArray(responseData?.data)) {
+            return responseData.data;
+        }
+
+        if (Array.isArray(responseData?.orders)) {
+            return responseData.orders;
+        }
+
+        if (Array.isArray(responseData?.data?.orders)) {
+            return responseData.data.orders;
+        }
+
+        return [];
+    };
+
+    // ==========================================
     // FETCH MY ORDERS
-    // silent = true means background refresh
-    // =====================================================
+    // ==========================================
 
     const fetchMyOrders = useCallback(
-        async (silent = false) => {
+        async (isBackgroundRefresh = false) => {
+            const savedToken = getToken();
+
+            if (!savedToken) {
+                navigate("/login", {
+                    replace: true,
+                    state: {
+                        from: "/my-orders",
+                    },
+                });
+
+                return;
+            }
+
             try {
-                const savedToken = getToken();
-
-                if (!savedToken) {
-                    navigate("/login", {
-                        replace: true,
-                    });
-                    return;
-                }
-
-                if (!silent) {
-                    setLoading(true);
-                } else {
+                if (isBackgroundRefresh) {
                     setRefreshing(true);
+                } else {
+                    setLoading(true);
                 }
 
                 setError("");
@@ -69,56 +122,71 @@ function MyOrders() {
                     }
                 );
 
+                const orderList = extractOrders(
+                    response?.data
+                );
+
+                const normalizedOrders =
+                    orderList.map((order) => ({
+                        ...order,
+                        orderStatus:
+                            normalizeStatus(order),
+                    }));
+
+                // ======================================
+                // DETECT STATUS CHANGES
+                // ======================================
+
                 if (
-                    response.data?.success
+                    isBackgroundRefresh &&
+                    normalizedOrders.length > 0
                 ) {
-                    const newOrders =
-                        response.data?.data || [];
+                    normalizedOrders.forEach((order) => {
+                        const orderId = order?._id;
 
-                    // =================================================
-                    // CHECK WHETHER ADMIN CHANGED ANY STATUS
-                    // =================================================
+                        if (!orderId) {
+                            return;
+                        }
 
-                    if (orders.length > 0) {
-                        const previousStatusMap =
-                            new Map(
-                                orders.map((order) => [
-                                    order._id,
-                                    order.orderStatus,
-                                ])
-                            );
+                        const newStatus =
+                            order.orderStatus;
 
-                        const changedOrder =
-                            newOrders.find((order) => {
-                                const previousStatus =
-                                    previousStatusMap.get(
-                                        order._id
-                                    );
+                        const oldStatus =
+                            previousStatuses.current[
+                                orderId
+                            ];
 
-                                return (
-                                    previousStatus &&
-                                    previousStatus !==
-                                        order.orderStatus
-                                );
-                            });
-
-                        if (changedOrder) {
-                            setStatusMessage(
-                                `Order #${changedOrder._id
-                                    .slice(-8)
-                                    .toUpperCase()} is now ${formatStatus(
-                                    changedOrder.orderStatus
-                                )}.`
+                        if (
+                            oldStatus &&
+                            oldStatus !== newStatus
+                        ) {
+                            console.log(
+                                `Order ${orderId} status changed: ${oldStatus} → ${newStatus}`
                             );
                         }
-                    }
 
-                    setOrders(newOrders);
+                        previousStatuses.current[
+                            orderId
+                        ] = newStatus;
+                    });
+                } else {
+                    normalizedOrders.forEach(
+                        (order) => {
+                            if (order?._id) {
+                                previousStatuses.current[
+                                    order._id
+                                ] =
+                                    order.orderStatus;
+                            }
+                        }
+                    );
                 }
+
+                setOrders(normalizedOrders);
             } catch (err) {
                 console.error(
                     "My orders error:",
-                    err?.response?.data || err
+                    err
                 );
 
                 const status =
@@ -138,39 +206,35 @@ function MyOrders() {
 
                     navigate("/login", {
                         replace: true,
+                        state: {
+                            from: "/my-orders",
+                        },
                     });
 
                     return;
                 }
 
-                // Don't show temporary network errors
-                // during background refresh over the UI.
-                if (!silent) {
+                if (!isBackgroundRefresh) {
                     setError(
-                        err?.response?.data?.message ||
+                        err?.response?.data
+                            ?.message ||
                             "Unable to load your orders."
                     );
                 }
             } finally {
-                if (!silent) {
-                    setLoading(false);
-                }
-
-                if (silent) {
+                if (isBackgroundRefresh) {
                     setRefreshing(false);
+                } else {
+                    setLoading(false);
                 }
             }
         },
-        [
-            getToken,
-            navigate,
-            orders,
-        ]
+        [API_URL, getToken, navigate]
     );
 
-    // =====================================================
-    // AUTH + INITIAL LOAD
-    // =====================================================
+    // ==========================================
+    // INITIAL LOAD
+    // ==========================================
 
     useEffect(() => {
         if (authLoading) {
@@ -180,6 +244,9 @@ function MyOrders() {
         if (!user) {
             navigate("/login", {
                 replace: true,
+                state: {
+                    from: "/my-orders",
+                },
             });
 
             return;
@@ -189,16 +256,16 @@ function MyOrders() {
     }, [
         authLoading,
         user,
-        navigate,
         fetchMyOrders,
+        navigate,
     ]);
 
-    // =====================================================
+    // ==========================================
     // AUTO REFRESH
-    //
-    // Admin status update customer ko automatically
-    // 8 seconds ke andar dikhega.
-    // =====================================================
+    // ==========================================
+    // Admin changes order status
+    // Customer sees updated status automatically.
+    // ==========================================
 
     useEffect(() => {
         if (authLoading || !user) {
@@ -218,30 +285,15 @@ function MyOrders() {
         fetchMyOrders,
     ]);
 
-    // =====================================================
-    // STATUS MESSAGE AUTO CLEAR
-    // =====================================================
-
-    useEffect(() => {
-        if (!statusMessage) {
-            return;
-        }
-
-        const timer = setTimeout(() => {
-            setStatusMessage("");
-        }, 5000);
-
-        return () => {
-            clearTimeout(timer);
-        };
-    }, [statusMessage]);
-
-    // =====================================================
+    // ==========================================
     // STATUS CLASS
-    // =====================================================
+    // ==========================================
 
     const getStatusClass = (status) => {
-        switch (status) {
+        switch (
+            String(status || "")
+                .toUpperCase()
+        ) {
             case "PLACED":
                 return "status-placed";
 
@@ -265,13 +317,45 @@ function MyOrders() {
         }
     };
 
-    // =====================================================
+    // ==========================================
+    // STATUS ICON
+    // ==========================================
+
+    const getStatusIcon = (status) => {
+        switch (
+            String(status || "")
+                .toUpperCase()
+        ) {
+            case "PLACED":
+                return "📝";
+
+            case "CONFIRMED":
+                return "✅";
+
+            case "PREPARING":
+                return "👨‍🍳";
+
+            case "OUT_FOR_DELIVERY":
+                return "🛵";
+
+            case "DELIVERED":
+                return "🎉";
+
+            case "CANCELLED":
+                return "❌";
+
+            default:
+                return "📦";
+        }
+    };
+
+    // ==========================================
     // FORMAT STATUS
-    // =====================================================
+    // ==========================================
 
     const formatStatus = (status) => {
         if (!status) {
-            return "";
+            return "Unknown";
         }
 
         return String(status)
@@ -284,17 +368,16 @@ function MyOrders() {
             );
     };
 
-    // =====================================================
+    // ==========================================
     // FORMAT DATE
-    // =====================================================
+    // ==========================================
 
     const formatDate = (date) => {
         if (!date) {
             return "Date unavailable";
         }
 
-        const parsedDate =
-            new Date(date);
+        const parsedDate = new Date(date);
 
         if (
             Number.isNaN(
@@ -313,9 +396,21 @@ function MyOrders() {
         );
     };
 
-    // =====================================================
+    // ==========================================
+    // SAFE NUMBER
+    // ==========================================
+
+    const safeNumber = (value) => {
+        const number = Number(value);
+
+        return Number.isFinite(number)
+            ? number
+            : 0;
+    };
+
+    // ==========================================
     // AUTH LOADING
-    // =====================================================
+    // ==========================================
 
     if (authLoading) {
         return (
@@ -333,9 +428,9 @@ function MyOrders() {
         );
     }
 
-    // =====================================================
-    // LOADING
-    // =====================================================
+    // ==========================================
+    // PAGE LOADING
+    // ==========================================
 
     if (loading) {
         return (
@@ -353,9 +448,9 @@ function MyOrders() {
         );
     }
 
-    // =====================================================
+    // ==========================================
     // ERROR
-    // =====================================================
+    // ==========================================
 
     if (error) {
         return (
@@ -383,37 +478,23 @@ function MyOrders() {
         );
     }
 
-    // =====================================================
+    // ==========================================
     // NO ORDERS
-    // =====================================================
+    // ==========================================
 
     if (orders.length === 0) {
         return (
             <section className="my-orders-page">
                 <div className="orders-header">
-                    <div>
-                        <h1>
-                            📦 My Orders
-                        </h1>
+                    <h1>
+                        📦 My Orders
+                    </h1>
 
-                        <p>
-                            Hello{" "}
-                            {user?.name},
-                            your orders
-                            will appear
-                            here.
-                        </p>
-                    </div>
-
-                    <button
-                        type="button"
-                        className="retry-btn"
-                        onClick={() =>
-                            fetchMyOrders(false)
-                        }
-                    >
-                        🔄 Refresh
-                    </button>
+                    <p>
+                        Hello {user?.name},
+                        your orders will
+                        appear here.
+                    </p>
                 </div>
 
                 <div className="no-orders">
@@ -444,19 +525,17 @@ function MyOrders() {
         );
     }
 
-    // =====================================================
+    // ==========================================
     // ORDERS
-    // =====================================================
+    // ==========================================
 
     return (
         <section className="my-orders-page">
-
-            {/* =================================================
+            {/* ==================================
                 HEADER
-            ================================================= */}
+            ================================== */}
 
             <div className="orders-header">
-
                 <div>
                     <h1>
                         📦 My Orders
@@ -470,467 +549,442 @@ function MyOrders() {
 
                 <button
                     type="button"
-                    className="retry-btn"
                     onClick={() =>
-                        fetchMyOrders(false)
+                        fetchMyOrders(true)
                     }
+                    className="refresh-orders-btn"
                     disabled={refreshing}
                 >
                     {refreshing
-                        ? "⏳ Updating..."
-                        : "🔄 Refresh Orders"}
+                        ? "⟳ Updating..."
+                        : "↻ Refresh"}
                 </button>
-
             </div>
 
-            {/* =================================================
+            {/* ==================================
                 LIVE UPDATE MESSAGE
-            ================================================= */}
+            ================================== */}
 
-            {statusMessage && (
-                <div
-                    style={{
-                        marginBottom: "18px",
-                        padding: "14px 18px",
-                        borderRadius: "14px",
-                        background:
-                            "#ecfdf5",
-                        border:
-                            "1px solid #a7f3d0",
-                        color:
-                            "#047857",
-                        fontWeight: 700,
-                        display: "flex",
-                        alignItems:
-                            "center",
-                        gap: "10px",
-                    }}
-                >
-                    <span>
-                        🔔
+            {refreshing && (
+                <div className="orders-live-update">
+                    <span className="live-dot">
+                        ●
                     </span>
 
-                    <span>
-                        {statusMessage}
-                    </span>
+                    Checking latest order
+                    status...
                 </div>
             )}
 
-            {/* =================================================
-                LIVE TRACKING INFO
-            ================================================= */}
-
-            <div
-                style={{
-                    marginBottom: "22px",
-                    padding: "12px 16px",
-                    borderRadius: "12px",
-                    background:
-                        "#f8fafc",
-                    border:
-                        "1px solid #e2e8f0",
-                    color:
-                        "#64748b",
-                    fontSize: "13px",
-                    display: "flex",
-                    alignItems:
-                        "center",
-                    gap: "8px",
-                }}
-            >
-                <span
-                    style={{
-                        width: "8px",
-                        height: "8px",
-                        borderRadius:
-                            "50%",
-                        background:
-                            "#22c55e",
-                        display:
-                            "inline-block",
-                    }}
-                />
-
-                Order status is updated
-                automatically.
-            </div>
-
-            {/* =================================================
+            {/* ==================================
                 ORDER LIST
-            ================================================= */}
+            ================================== */}
 
             <div className="orders-container">
+                {orders.map((order) => {
+                    const status =
+                        normalizeStatus(order);
 
-                {orders.map((order) => (
+                    return (
+                        <div
+                            className="order-card"
+                            key={order._id}
+                        >
+                            {/* ==========================
+                                ORDER TOP
+                            ========================== */}
 
-                    <div
-                        className="order-card"
-                        key={order._id}
-                    >
-
-                        {/* =====================================
-                            ORDER TOP
-                        ===================================== */}
-
-                        <div className="order-top">
-
-                            <div>
-
-                                <h3>
-                                    Order #
-                                    {order._id
-                                        ?.slice(
-                                            -8
+                            <div className="order-top">
+                                <div>
+                                    <h3>
+                                        Order #
+                                        {String(
+                                            order._id ||
+                                                ""
                                         )
-                                        .toUpperCase()}
-                                </h3>
+                                            .slice(-8)
+                                            .toUpperCase()}
+                                    </h3>
 
-                                <p>
-                                    {formatDate(
-                                        order.createdAt
+                                    <p>
+                                        {formatDate(
+                                            order.createdAt
+                                        )}
+                                    </p>
+                                </div>
+
+                                <span
+                                    className={`order-status ${getStatusClass(
+                                        status
+                                    )}`}
+                                >
+                                    {getStatusIcon(
+                                        status
+                                    )}{" "}
+                                    {formatStatus(
+                                        status
                                     )}
-                                </p>
-
+                                </span>
                             </div>
 
-                            <span
-                                className={`order-status ${getStatusClass(
-                                    order.orderStatus
-                                )}`}
-                            >
-                                {formatStatus(
-                                    order.orderStatus
-                                )}
-                            </span>
+                            {/* ==========================
+                                STATUS TRACKER
+                            ========================== */}
 
-                        </div>
-
-                        {/* =====================================
-                            STATUS TRACKING
-                        ===================================== */}
-
-                        <div
-                            style={{
-                                margin:
-                                    "18px 0",
-                                padding:
-                                    "16px",
-                                borderRadius:
-                                    "14px",
-                                background:
-                                    "#f8fafc",
-                                border:
-                                    "1px solid #e2e8f0",
-                            }}
-                        >
-                            <div
-                                style={{
-                                    display:
-                                        "flex",
-                                    justifyContent:
-                                        "space-between",
-                                    gap: "6px",
-                                    fontSize:
-                                        "11px",
-                                    fontWeight:
-                                        700,
-                                    color:
-                                        "#64748b",
-                                }}
-                            >
-                                {[
-                                    [
-                                        "PLACED",
-                                        "Placed",
-                                        "🟡",
-                                    ],
-                                    [
-                                        "CONFIRMED",
-                                        "Confirmed",
-                                        "✅",
-                                    ],
-                                    [
-                                        "PREPARING",
-                                        "Preparing",
-                                        "🔥",
-                                    ],
-                                    [
-                                        "OUT_FOR_DELIVERY",
-                                        "On the way",
-                                        "🚴",
-                                    ],
-                                    [
-                                        "DELIVERED",
-                                        "Delivered",
-                                        "🎉",
-                                    ],
-                                ].map(
-                                    (step) => {
-
-                                        const [
-                                            value,
-                                            label,
-                                            icon,
-                                        ] = step;
-
-                                        const statusOrder = [
+                            <div className="order-progress">
+                                <div
+                                    className={`progress-step ${
+                                        [
                                             "PLACED",
                                             "CONFIRMED",
                                             "PREPARING",
                                             "OUT_FOR_DELIVERY",
                                             "DELIVERED",
-                                        ];
+                                        ].includes(
+                                            status
+                                        )
+                                            ? "active"
+                                            : ""
+                                    }`}
+                                >
+                                    <span>
+                                        📝
+                                    </span>
 
-                                        const currentIndex =
-                                            statusOrder.indexOf(
-                                                order.orderStatus
-                                            );
+                                    <small>
+                                        Placed
+                                    </small>
+                                </div>
 
-                                        const stepIndex =
-                                            statusOrder.indexOf(
-                                                value
-                                            );
+                                <div
+                                    className={`progress-line ${
+                                        [
+                                            "CONFIRMED",
+                                            "PREPARING",
+                                            "OUT_FOR_DELIVERY",
+                                            "DELIVERED",
+                                        ].includes(
+                                            status
+                                        )
+                                            ? "active"
+                                            : ""
+                                    }`}
+                                />
 
-                                        const completed =
-                                            currentIndex >=
-                                            stepIndex;
+                                <div
+                                    className={`progress-step ${
+                                        [
+                                            "CONFIRMED",
+                                            "PREPARING",
+                                            "OUT_FOR_DELIVERY",
+                                            "DELIVERED",
+                                        ].includes(
+                                            status
+                                        )
+                                            ? "active"
+                                            : ""
+                                    }`}
+                                >
+                                    <span>
+                                        ✅
+                                    </span>
 
-                                        return (
-                                            <div
-                                                key={
-                                                    value
-                                                }
-                                                style={{
-                                                    flex:
-                                                        1,
-                                                    textAlign:
-                                                        "center",
-                                                    opacity:
-                                                        completed
-                                                            ? 1
-                                                            : 0.45,
-                                                }}
-                                            >
-                                                <div
-                                                    style={{
-                                                        fontSize:
-                                                            "18px",
-                                                        marginBottom:
-                                                            "4px",
-                                                    }}
-                                                >
-                                                    {
-                                                        icon
-                                                    }
-                                                </div>
+                                    <small>
+                                        Confirmed
+                                    </small>
+                                </div>
 
-                                                <div>
-                                                    {
-                                                        label
-                                                    }
-                                                </div>
-                                            </div>
-                                        );
-                                    }
-                                )}
+                                <div
+                                    className={`progress-line ${
+                                        [
+                                            "PREPARING",
+                                            "OUT_FOR_DELIVERY",
+                                            "DELIVERED",
+                                        ].includes(
+                                            status
+                                        )
+                                            ? "active"
+                                            : ""
+                                    }`}
+                                />
+
+                                <div
+                                    className={`progress-step ${
+                                        [
+                                            "PREPARING",
+                                            "OUT_FOR_DELIVERY",
+                                            "DELIVERED",
+                                        ].includes(
+                                            status
+                                        )
+                                            ? "active"
+                                            : ""
+                                    }`}
+                                >
+                                    <span>
+                                        👨‍🍳
+                                    </span>
+
+                                    <small>
+                                        Preparing
+                                    </small>
+                                </div>
+
+                                <div
+                                    className={`progress-line ${
+                                        [
+                                            "OUT_FOR_DELIVERY",
+                                            "DELIVERED",
+                                        ].includes(
+                                            status
+                                        )
+                                            ? "active"
+                                            : ""
+                                    }`}
+                                />
+
+                                <div
+                                    className={`progress-step ${
+                                        [
+                                            "OUT_FOR_DELIVERY",
+                                            "DELIVERED",
+                                        ].includes(
+                                            status
+                                        )
+                                            ? "active"
+                                            : ""
+                                    }`}
+                                >
+                                    <span>
+                                        🛵
+                                    </span>
+
+                                    <small>
+                                        Delivery
+                                    </small>
+                                </div>
+
+                                <div
+                                    className={`progress-line ${
+                                        status ===
+                                        "DELIVERED"
+                                            ? "active"
+                                            : ""
+                                    }`}
+                                />
+
+                                <div
+                                    className={`progress-step ${
+                                        status ===
+                                        "DELIVERED"
+                                            ? "active"
+                                            : ""
+                                    }`}
+                                >
+                                    <span>
+                                        🎉
+                                    </span>
+
+                                    <small>
+                                        Delivered
+                                    </small>
+                                </div>
                             </div>
-                        </div>
 
-                        {/* =====================================
-                            CANCELLED MESSAGE
-                        ===================================== */}
+                            {/* ==========================
+                                CANCELLED MESSAGE
+                            ========================== */}
 
-                        {order.orderStatus ===
-                            "CANCELLED" && (
-                            <div
-                                style={{
-                                    marginBottom:
-                                        "18px",
-                                    padding:
-                                        "14px",
-                                    borderRadius:
-                                        "12px",
-                                    background:
-                                        "#fef2f2",
-                                    border:
-                                        "1px solid #fecaca",
-                                    color:
-                                        "#b91c1c",
-                                    fontWeight:
-                                        600,
-                                }}
-                            >
-                                ❌ This order has
-                                been cancelled.
-                            </div>
-                        )}
+                            {status ===
+                                "CANCELLED" && (
+                                <div className="order-cancelled-message">
+                                    <strong>
+                                        ❌ Order
+                                        Cancelled
+                                    </strong>
 
-                        {/* =====================================
-                            ITEMS
-                        ===================================== */}
-
-                        <div className="order-items">
-
-                            {Array.isArray(
-                                order.items
-                            ) &&
-                                order.items.map(
-                                    (
-                                        item,
-                                        index
-                                    ) => (
-
-                                        <div
-                                            className="order-item"
-                                            key={
-                                                `${order._id}-${index}`
-                                            }
-                                        >
-
-                                            <img
-                                                src={
-                                                    item.image
-                                                }
-                                                alt={
-                                                    item.name
-                                                }
-                                            />
-
-                                            <div className="item-details">
-
-                                                <h4>
-                                                    {
-                                                        item.name
-                                                    }
-                                                </h4>
-
-                                                <p>
-                                                    ₹
-                                                    {Number(
-                                                        item.price ||
-                                                            0
-                                                    ).toFixed(
-                                                        2
-                                                    )}
-                                                    {" × "}
-                                                    {
-                                                        item.quantity
-                                                    }
-                                                </p>
-
-                                            </div>
-
-                                            <strong>
-                                                ₹
-                                                {(
-                                                    Number(
-                                                        item.price ||
-                                                            0
-                                                    ) *
-                                                    Number(
-                                                        item.quantity ||
-                                                            0
-                                                    )
-                                                ).toFixed(
-                                                    2
-                                                )}
-                                            </strong>
-
-                                        </div>
-                                    )
-                                )}
-
-                        </div>
-
-                        {/* =====================================
-                            CUSTOMER DETAILS
-                        ===================================== */}
-
-                        <div className="order-customer">
-
-                            <h4>
-                                Delivery Details
-                            </h4>
-
-                            <p>
-                                📞{" "}
-                                {
-                                    order
-                                        .customer
-                                        ?.phone ||
-                                    "—"
-                                }
-                            </p>
-
-                            <p>
-                                📍{" "}
-                                {
-                                    order
-                                        .customer
-                                        ?.address ||
-                                    "—"
-                                }
-                            </p>
-
-                            {order.customer
-                                ?.instructions && (
-                                <p>
-                                    📝{" "}
-                                    {
-                                        order
-                                            .customer
-                                            .instructions
-                                    }
-                                </p>
+                                    <p>
+                                        This order
+                                        has been
+                                        cancelled by
+                                        the restaurant.
+                                    </p>
+                                </div>
                             )}
 
-                        </div>
+                            {/* ==========================
+                                ITEMS
+                            ========================== */}
 
-                        {/* =====================================
-                            BOTTOM
-                        ===================================== */}
+                            <div className="order-items">
+                                {Array.isArray(
+                                    order.items
+                                ) &&
+                                    order.items.map(
+                                        (
+                                            item,
+                                            index
+                                        ) => {
+                                            const price =
+                                                safeNumber(
+                                                    item?.price
+                                                );
 
-                        <div className="order-bottom">
+                                            const quantity =
+                                                safeNumber(
+                                                    item?.quantity
+                                                );
 
-                            <div>
-                                <span>
-                                    Payment:{" "}
-                                </span>
+                                            const itemTotal =
+                                                price *
+                                                quantity;
 
-                                <strong>
-                                    {
-                                        order.paymentMethod ||
-                                        "COD"
-                                    }
-                                </strong>
-                            </div>
+                                            return (
+                                                <div
+                                                    className="order-item"
+                                                    key={
+                                                        item?._id ||
+                                                        index
+                                                    }
+                                                >
+                                                    <img
+                                                        src={
+                                                            item?.image ||
+                                                            "/placeholder-food.jpg"
+                                                        }
+                                                        alt={
+                                                            item?.name ||
+                                                            "Food item"
+                                                        }
+                                                        onError={(
+                                                            event
+                                                        ) => {
+                                                            event.currentTarget.src =
+                                                                "/placeholder-food.jpg";
+                                                        }}
+                                                    />
 
-                            <div className="order-total">
+                                                    <div className="item-details">
+                                                        <h4>
+                                                            {item?.name ||
+                                                                "Food item"}
+                                                        </h4>
 
-                                <span>
-                                    Total
-                                </span>
+                                                        <p>
+                                                            ₹
+                                                            {price.toFixed(
+                                                                2
+                                                            )}{" "}
+                                                            ×{" "}
+                                                            {
+                                                                quantity
+                                                            }
+                                                        </p>
+                                                    </div>
 
-                                <strong>
-                                    ₹
-                                    {Number(
-                                        order.totalAmount ||
-                                            0
-                                    ).toFixed(
-                                        2
+                                                    <strong>
+                                                        ₹
+                                                        {itemTotal.toFixed(
+                                                            2
+                                                        )}
+                                                    </strong>
+                                                </div>
+                                            );
+                                        }
                                     )}
-                                </strong>
-
                             </div>
 
+                            {/* ==========================
+                                CUSTOMER DETAILS
+                            ========================== */}
+
+                            <div className="order-customer">
+                                <h4>
+                                    Delivery Details
+                                </h4>
+
+                                {order.customer
+                                    ?.name && (
+                                    <p>
+                                        👤{" "}
+                                        {
+                                            order
+                                                .customer
+                                                .name
+                                        }
+                                    </p>
+                                )}
+
+                                {order.customer
+                                    ?.phone && (
+                                    <p>
+                                        📞{" "}
+                                        {
+                                            order
+                                                .customer
+                                                .phone
+                                        }
+                                    </p>
+                                )}
+
+                                {order.customer
+                                    ?.address && (
+                                    <p>
+                                        📍{" "}
+                                        {
+                                            order
+                                                .customer
+                                                .address
+                                        }
+                                    </p>
+                                )}
+
+                                {order.customer
+                                    ?.instructions && (
+                                    <p>
+                                        📝{" "}
+                                        {
+                                            order
+                                                .customer
+                                                .instructions
+                                        }
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* ==========================
+                                BOTTOM
+                            ========================== */}
+
+                            <div className="order-bottom">
+                                <div>
+                                    <span>
+                                        Payment:{" "}
+                                    </span>
+
+                                    <strong>
+                                        {order.paymentMethod ||
+                                            "N/A"}
+                                    </strong>
+                                </div>
+
+                                <div className="order-total">
+                                    <span>
+                                        Total
+                                    </span>
+
+                                    <strong>
+                                        ₹
+                                        {safeNumber(
+                                            order.totalAmount
+                                        ).toFixed(2)}
+                                    </strong>
+                                </div>
+                            </div>
                         </div>
-
-                    </div>
-
-                ))}
-
+                    );
+                })}
             </div>
-
         </section>
     );
 }

@@ -1,209 +1,98 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
-
 import "../styles/navbar.css";
 
-
 export default function Navbar() {
-
     const navigate = useNavigate();
 
     const { totalItems } = useCart();
-
-    const {
-        user,
-        logout,
-    } = useAuth();
-
+    const { user, logout } = useAuth();
 
     const [menuOpen, setMenuOpen] = useState(false);
-
     const [scrolled, setScrolled] = useState(false);
 
+    // =========================
+    // SCROLL EFFECT
+    // =========================
 
-    /* =====================================================
-       ADMIN CHECK
-       ===================================================== */
+    useEffect(() => {
+        const handleScroll = () => {
+            setScrolled(window.scrollY > 40);
+        };
 
-    const savedUser = (() => {
+        window.addEventListener("scroll", handleScroll);
 
-        try {
+        return () => {
+            window.removeEventListener("scroll", handleScroll);
+        };
+    }, []);
 
-            const stored =
-                localStorage.getItem("user");
+    // =========================
+    // CLOSE MENU
+    // =========================
 
-            return stored
-                ? JSON.parse(stored)
-                : null;
+    const closeMenu = () => {
+        setMenuOpen(false);
+    };
 
-        } catch {
+    // =========================
+    // NAVIGATION HELPERS
+    // =========================
 
-            return null;
+    const goTo = (path) => {
+        navigate(path);
+        closeMenu();
+    };
 
-        }
+    // =========================
+    // LOGOUT
+    // =========================
 
-    })();
+    const handleLogout = () => {
+        logout();
+        closeMenu();
+        navigate("/");
+    };
 
+    // =========================
+    // ADMIN CHECK
+    // =========================
 
     const isAdmin =
         user?.role === "admin" ||
-        user?.isAdmin === true ||
-        savedUser?.role === "admin" ||
-        savedUser?.isAdmin === true;
-
-
-    /* =====================================================
-       SCROLL
-       ===================================================== */
-
-    useEffect(() => {
-
-        const handleScroll = () => {
-
-            setScrolled(
-                window.scrollY > 40
-            );
-
-        };
-
-
-        window.addEventListener(
-            "scroll",
-            handleScroll
-        );
-
-
-        return () => {
-
-            window.removeEventListener(
-                "scroll",
-                handleScroll
-            );
-
-        };
-
-    }, []);
-
-
-    /* =====================================================
-       CLOSE MENU
-       ===================================================== */
-
-    const closeMenu = () => {
-
-        setMenuOpen(false);
-
-    };
-
-
-    /* =====================================================
-       LOGO
-       ===================================================== */
-
-    const handleLogoClick = () => {
-
-        navigate("/");
-
-        closeMenu();
-
-    };
-
-
-    /* =====================================================
-       CART
-       ===================================================== */
-
-    const handleCartClick = () => {
-
-        navigate("/cart");
-
-        closeMenu();
-
-    };
-
-
-    /* =====================================================
-       LOGOUT
-       ===================================================== */
-
-    const handleLogout = () => {
-
-        logout();
-
-        closeMenu();
-
-        navigate("/login");
-
-    };
-
-
-    /* =====================================================
-       ADMIN DASHBOARD
-       ===================================================== */
-
-    const openAdminDashboard = () => {
-
-        navigate("/admin");
-
-        closeMenu();
-
-    };
-
-
-    /* =====================================================
-       ADMIN RESERVATIONS
-       ===================================================== */
-
-    const openAdminReservations = () => {
-
-        navigate("/admin/reservations");
-
-        closeMenu();
-
-    };
-
+        user?.isAdmin === true;
 
     return (
-
         <nav
-            className={`
-                navbar
-                ${menuOpen ? "menu-open" : ""}
-                ${scrolled ? "navbar-scrolled" : ""}
-            `}
+            className={`navbar ${
+                menuOpen ? "menu-open" : ""
+            } ${
+                scrolled ? "navbar-scrolled" : ""
+            }`}
         >
 
-
-            {/* =================================================
-               LOGO
-               ================================================= */}
+            {/* =========================
+                LOGO
+            ========================= */}
 
             <div
                 className="logo"
-                onClick={handleLogoClick}
+                onClick={() => goTo("/")}
                 role="button"
                 tabIndex={0}
                 onKeyDown={(event) => {
-
                     if (event.key === "Enter") {
-
-                        handleLogoClick();
-
+                        goTo("/");
                     }
-
                 }}
             >
-
                 <span className="logo-icon">
                     ✦
                 </span>
 
-
                 <div className="logo-text">
-
                     <strong>
                         Swaad & Spice
                     </strong>
@@ -211,297 +100,216 @@ export default function Navbar() {
                     <small>
                         HOUSE OF INDIAN FLAVOURS
                     </small>
-
                 </div>
-
             </div>
 
 
-            {/* =================================================
-               DESKTOP NAVIGATION
-               ================================================= */}
+            {/* =========================
+                DESKTOP NAVIGATION
+            ========================= */}
 
             <ul className="nav-links">
 
                 <li>
-
                     <NavLink
                         to="/"
                         onClick={closeMenu}
                     >
                         Home
                     </NavLink>
-
                 </li>
 
-
                 <li>
-
                     <NavLink
                         to="/menu"
                         onClick={closeMenu}
                     >
                         Menu
                     </NavLink>
-
                 </li>
 
-
                 <li>
-
                     <NavLink
                         to="/about"
                         onClick={closeMenu}
                     >
                         About
                     </NavLink>
-
                 </li>
 
-
                 <li>
-
                     <NavLink
                         to="/contact"
                         onClick={closeMenu}
                     >
                         Contact
                     </NavLink>
-
                 </li>
 
-
                 <li>
-
                     <NavLink
                         to="/reservation"
                         onClick={closeMenu}
                     >
                         Book a Table
                     </NavLink>
-
                 </li>
 
             </ul>
 
 
-            {/* =================================================
-               RIGHT ACTIONS
-               ================================================= */}
+            {/* =========================
+                RIGHT ACTIONS
+            ========================= */}
 
             <div className="navbar-actions">
 
-
-                {/* =================================================
-                   NOT LOGGED IN
-                   ================================================= */}
+                {/* =========================
+                    NOT LOGGED IN
+                ========================= */}
 
                 {!user && (
-
                     <button
                         className="login-btn"
                         type="button"
-                        onClick={() => {
-
-                            navigate("/login");
-
-                            closeMenu();
-
-                        }}
+                        onClick={() => goTo("/login")}
                     >
                         Login
                     </button>
-
                 )}
 
 
-                {/* =================================================
-                   LOGGED IN
-                   ================================================= */}
+                {/* =========================
+                    LOGGED IN
+                ========================= */}
 
                 {user && (
-
                     <div className="user-section">
-
 
                         {/* USER */}
 
                         <span className="user-name">
 
                             <span className="user-avatar">
-
-                                {user.name
+                                {user?.name
                                     ?.charAt(0)
-                                    .toUpperCase()}
-
+                                    ?.toUpperCase() || "U"}
                             </span>
 
-
                             <span>
-
-                                Hi, {user.name}
-
+                                Hi, {user?.name || "User"}
                             </span>
 
                         </span>
 
 
-                        {/* =================================================
-                           MY ORDERS
-                           ================================================= */}
+                        {/* MY ORDERS */}
 
                         <button
                             className="my-orders-btn"
                             type="button"
-                            onClick={() => {
-
-                                navigate(
-                                    "/my-orders"
-                                );
-
-                                closeMenu();
-
-                            }}
+                            onClick={() =>
+                                goTo("/my-orders")
+                            }
                         >
-
                             My Orders
-
                         </button>
 
 
-                        {/* =================================================
-                           ADMIN DASHBOARD
-                           ================================================= */}
+                        {/* MY RESERVATIONS */}
+
+                        <button
+                            className="my-reservations-btn"
+                            type="button"
+                            onClick={() =>
+                                goTo("/my-reservations")
+                            }
+                        >
+                            My Reservations
+                        </button>
+
+
+                        {/* ADMIN */}
 
                         {isAdmin && (
-
                             <button
                                 className="admin-btn"
                                 type="button"
-                                onClick={
-                                    openAdminDashboard
+                                onClick={() =>
+                                    goTo("/admin")
                                 }
                             >
-
-                                📊 Admin Panel
-
+                                Admin
                             </button>
-
                         )}
 
 
-                        {/* =================================================
-                           ADMIN RESERVATIONS
-                           ================================================= */}
-
-                        {isAdmin && (
-
-                            <button
-                                className="admin-reservation-btn"
-                                type="button"
-                                onClick={
-                                    openAdminReservations
-                                }
-                            >
-
-                                📅 Reservations
-
-                            </button>
-
-                        )}
-
-
-                        {/* =================================================
-                           LOGOUT
-                           ================================================= */}
+                        {/* LOGOUT */}
 
                         <button
                             className="logout-btn"
                             type="button"
-                            onClick={
-                                handleLogout
-                            }
+                            onClick={handleLogout}
                         >
-
                             Logout
-
                         </button>
 
                     </div>
-
                 )}
 
 
-                {/* =================================================
-                   CART
-                   ================================================= */}
+                {/* =========================
+                    CART
+                ========================= */}
 
                 <button
                     className="order-btn"
                     type="button"
-                    onClick={
-                        handleCartClick
-                    }
+                    onClick={() => goTo("/cart")}
                     aria-label="Open shopping cart"
                 >
-
                     <span className="cart-icon">
                         🛒
                     </span>
-
 
                     <span className="cart-text">
                         Cart
                     </span>
 
-
                     {totalItems > 0 && (
-
                         <span className="cart-count">
-
                             {totalItems}
-
                         </span>
-
                     )}
-
                 </button>
 
             </div>
 
 
-            {/* =================================================
-               MOBILE TOGGLE
-               ================================================= */}
+            {/* =========================
+                MOBILE MENU BUTTON
+            ========================= */}
 
             <button
                 className="menu-toggle"
                 type="button"
-                onClick={() => {
-
-                    setMenuOpen(
-                        previous =>
-                            !previous
-                    );
-
-                }}
+                onClick={() =>
+                    setMenuOpen((previous) => !previous)
+                }
                 aria-label="Toggle navigation menu"
                 aria-expanded={menuOpen}
             >
-
                 <span></span>
                 <span></span>
                 <span></span>
-
             </button>
 
 
-            {/* =================================================
-               MOBILE MENU
-               ================================================= */}
+            {/* =========================
+                MOBILE MENU
+            ========================= */}
 
             <div className="mobile-menu">
-
 
                 <NavLink
                     to="/"
@@ -510,14 +318,12 @@ export default function Navbar() {
                     Home
                 </NavLink>
 
-
                 <NavLink
                     to="/menu"
                     onClick={closeMenu}
                 >
                     Menu
                 </NavLink>
-
 
                 <NavLink
                     to="/about"
@@ -526,14 +332,12 @@ export default function Navbar() {
                     About
                 </NavLink>
 
-
                 <NavLink
                     to="/contact"
                     onClick={closeMenu}
                 >
                     Contact
                 </NavLink>
-
 
                 <NavLink
                     to="/reservation"
@@ -543,150 +347,91 @@ export default function Navbar() {
                 </NavLink>
 
 
-                {/* =================================================
-                   MOBILE LOGIN
-                   ================================================= */}
+                {/* =========================
+                    MOBILE LOGIN
+                ========================= */}
 
                 {!user && (
-
                     <button
                         className="mobile-login"
                         type="button"
-                        onClick={() => {
-
-                            navigate("/login");
-
-                            closeMenu();
-
-                        }}
+                        onClick={() =>
+                            goTo("/login")
+                        }
                     >
-
                         Login
-
                     </button>
-
                 )}
 
 
-                {/* =================================================
-                   MOBILE USER
-                   ================================================= */}
+                {/* =========================
+                    MOBILE USER OPTIONS
+                ========================= */}
 
                 {user && (
-
                     <>
-
-
-                        {/* MY ORDERS */}
+                        <button
+                            type="button"
+                            onClick={() =>
+                                goTo("/my-orders")
+                            }
+                        >
+                            My Orders
+                        </button>
 
                         <button
                             type="button"
-                            onClick={() => {
-
-                                navigate(
-                                    "/my-orders"
-                                );
-
-                                closeMenu();
-
-                            }}
+                            onClick={() =>
+                                goTo("/my-reservations")
+                            }
                         >
-
-                            📦 My Orders
-
+                            My Reservations
                         </button>
 
-
-                        {/* ADMIN */}
-
                         {isAdmin && (
-
                             <button
-                                className="mobile-admin-btn"
                                 type="button"
-                                onClick={
-                                    openAdminDashboard
+                                onClick={() =>
+                                    goTo("/admin")
                                 }
                             >
-
-                                📊 Admin Dashboard
-
+                                Admin Dashboard
                             </button>
-
                         )}
-
-
-                        {/* RESERVATIONS */}
-
-                        {isAdmin && (
-
-                            <button
-                                className="mobile-admin-btn"
-                                type="button"
-                                onClick={
-                                    openAdminReservations
-                                }
-                            >
-
-                                📅 Manage Reservations
-
-                            </button>
-
-                        )}
-
-
-                        {/* LOGOUT */}
 
                         <button
                             className="mobile-logout"
                             type="button"
-                            onClick={
-                                handleLogout
-                            }
+                            onClick={handleLogout}
                         >
-
                             Logout
-
                         </button>
-
                     </>
-
                 )}
 
 
-                {/* =================================================
-                   MOBILE CART
-                   ================================================= */}
+                {/* =========================
+                    MOBILE CART
+                ========================= */}
 
                 <button
                     className="mobile-cart"
                     type="button"
-                    onClick={
-                        handleCartClick
-                    }
+                    onClick={() => goTo("/cart")}
                 >
-
                     <span>
                         🛒 Cart
                     </span>
 
-
                     {totalItems > 0 && (
-
                         <span className="cart-count">
-
                             {totalItems}
-
                         </span>
-
                     )}
-
                 </button>
 
             </div>
 
         </nav>
-
     );
-
 }
